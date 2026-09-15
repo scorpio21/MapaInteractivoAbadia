@@ -1,6 +1,7 @@
 [gd_scene load_steps=2 format=3 uid="uid://d1e2f3a4b5c6"]
 
 [ext_resource type="Script" path="res://scripts/AbbeyBuilder3D.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/Camera3DController.gd" id="2_camera"]
 
 [node name="Mapa3D" type="Node3D"]
 
@@ -12,6 +13,7 @@ shadow_enabled = true
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(0.707, -0.408, 0.577, 0, 0.816, 0.577, -0.707, -0.408, 0.707, 208, 150, 300)
 fov = 60.0
+script = ExtResource("2_camera")
 
 [node name="AbbeyBuilder" type="Node3D" parent="."]
 script = ExtResource("1_script")
