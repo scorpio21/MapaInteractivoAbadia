@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Jugador.gd" id="1_cijmv"]
+
+[node name="Jugador" type="CharacterBody2D" unique_id=1975335775]
+script = ExtResource("1_cijmv")
