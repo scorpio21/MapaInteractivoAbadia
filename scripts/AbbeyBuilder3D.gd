@@ -1,54 +1,42 @@
 extends Node3D
 
-# Generador de mapa 3D desde JSON de ultrabolido/abadia
+# Generador de mapa 3D optimizado - usa un solo ArrayMesh
 
 @export var tile_size: float = 2.0
-@export var height_scale: float = 1.0
+@export var height_scale: float = 0.5
 @export var floor_index: int = 0
 
 var floors_data: Array = []
 var rooms_data: Array = []
-var floor_meshes: Node3D
 
 func _ready() -> void:
-	floor_meshes = Node3D.new()
-	floor_meshes.name = "FloorMeshes"
-	add_child(floor_meshes)
+	call_deferred("_init_map")
 
+func _init_map() -> void:
 	_load_data()
-	_generate_floor()
+	if floors_data.is_empty() or rooms_data.is_empty():
+		push_warning("No hay datos de mapa")
+		return
+	_generate_map()
 
 func _load_data() -> void:
-	var floors_file = FileAccess.open("res://data/floors.json", FileAccess.READ)
-	if floors_file:
+	var f = FileAccess.open("res://data/floors.json", FileAccess.READ)
+	if f:
 		var json = JSON.new()
-		var error = json.parse(floors_file.get_as_text())
-		if error == OK:
+		if json.parse(f.get_as_text()) == OK:
 			floors_data = json.data
-		else:
-			push_warning("Error parsing floors.json: " + json.get_error_message())
-		floors_file.close()
-	else:
-		push_warning("No se pudo abrir floors.json")
+		f.close()
 
-	var rooms_file = FileAccess.open("res://data/rooms.json", FileAccess.READ)
-	if rooms_file:
+	var r = FileAccess.open("res://data/rooms.json", FileAccess.READ)
+	if r:
 		var json = JSON.new()
-		var error = json.parse(rooms_file.get_as_text())
-		if error == OK:
+		if json.parse(r.get_as_text()) == OK:
 			rooms_data = json.data
-		else:
-			push_warning("Error parsing rooms.json: " + json.get_error_message())
-		rooms_file.close()
-	else:
-		push_warning("No se pudo abrir rooms.json")
+		r.close()
 
-func _generate_floor() -> void:
-	if floors_data.is_empty() or rooms_data.is_empty():
-		push_warning("No hay datos de mapa cargados")
-		return
-
-	_clear_meshes()
+func _generate_map() -> void:
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 
 	var floor = floors_data[floor_index]
 	var room_grid = floor["room"]
@@ -56,62 +44,126 @@ func _generate_floor() -> void:
 	for ry in range(16):
 		for rx in range(16):
 			var room_id = room_grid[ry][rx]
-			if room_id == 0:
+			if room_id == 0 or room_id > rooms_data.size():
 				continue
-			_generate_room(room_id, rx, ry)
+			_add_room_mesh(st, room_id, rx, ry)
 
-func _generate_room(room_id: int, grid_x: int, grid_y: int) -> void:
-	if room_id < 1 or room_id > rooms_data.size():
-		return
+	st.generate_normals()
+	var mesh = st.commit()
 
+	var instance = MeshInstance3D.new()
+	instance.mesh = mesh
+	instance.name = "AbbeyMesh"
+
+	var material = StandardMaterial3D.new()
+	material.albedo_color = Color(0.6, 0.5, 0.4)
+	instance.material_override = material
+
+	add_child(instance)
+
+	# Agregar personajes 3D
+	_add_characters()
+
+func _add_room_mesh(st: SurfaceTool, room_id: int, grid_x: int, grid_y: int) -> void:
 	var room = rooms_data[room_id - 1]
 	var height_data = room["heightData"]
-
-	var room_node = Node3D.new()
-	room_node.name = "Room_%d_%d_%d" % [room_id, grid_x, grid_y]
-	room_node.position = Vector3(grid_x * 16 * tile_size, 0, grid_y * 16 * tile_size)
-	floor_meshes.add_child(room_node)
+	var offset_x = grid_x * 16 * tile_size
+	var offset_z = grid_y * 16 * tile_size
 
 	for y in range(16):
 		for x in range(16):
-			var height = height_data[y][x]
-			if height == 15:
-				_create_wall(room_node, x, y)
-			elif height > 0 and height < 15:
-				_create_platform(room_node, x, y, height)
+			var h = height_data[y][x]
+			if h == 0:
+				continue
 
-func _create_wall(parent: Node3D, x: int, y: int) -> void:
-	var box = BoxMesh.new()
-	box.size = Vector3(tile_size, tile_size * 2, tile_size)
+			var px = offset_x + x * tile_size
+			var pz = offset_z + y * tile_size
 
-	var instance = MeshInstance3D.new()
-	instance.mesh = box
-	instance.position = Vector3(x * tile_size, tile_size, y * tile_size)
+			if h == 15:
+				_add_cube(st, px, pz, tile_size, tile_size * 2, Color(0.4, 0.35, 0.25))
+			else:
+				var ph = h * height_scale
+				_add_cube(st, px, pz, tile_size, ph, Color(0.5 + float(h)/30.0, 0.4, 0.3))
 
-	var material = StandardMaterial3D.new()
-	material.albedo_color = Color(0.4, 0.35, 0.25)
-	instance.material_override = material
+func _add_cube(st: SurfaceTool, x: float, z: float, size: float, height: float, color: Color) -> void:
+	var y0 = 0.0
+	var y1 = height
+	var s = size * 0.5
 
-	parent.add_child(instance)
+	var verts = [
+		# Front
+		Vector3(x - s, y0, z - s), Vector3(x + s, y0, z - s), Vector3(x + s, y1, z - s),
+		Vector3(x - s, y0, z - s), Vector3(x + s, y1, z - s), Vector3(x - s, y1, z - s),
+		# Back
+		Vector3(x + s, y0, z + s), Vector3(x - s, y0, z + s), Vector3(x - s, y1, z + s),
+		Vector3(x + s, y0, z + s), Vector3(x - s, y1, z + s), Vector3(x + s, y1, z + s),
+		# Top
+		Vector3(x - s, y1, z - s), Vector3(x + s, y1, z - s), Vector3(x + s, y1, z + s),
+		Vector3(x - s, y1, z - s), Vector3(x + s, y1, z + s), Vector3(x - s, y1, z + s),
+	]
 
-func _create_platform(parent: Node3D, x: int, y: int, height: int) -> void:
-	var box = BoxMesh.new()
-	box.size = Vector3(tile_size, height * height_scale * 0.25, tile_size)
+	for v in verts:
+		st.set_color(color)
+		st.add_vertex(v)
 
-	var instance = MeshInstance3D.new()
-	instance.mesh = box
-	instance.position = Vector3(x * tile_size, height * height_scale * 0.125, y * tile_size)
+func _add_characters() -> void:
+	var Personaje3DScript = preload("res://scripts/Personaje3D.gd")
 
-	var material = StandardMaterial3D.new()
-	var color_value = float(height) / 15.0
-	material.albedo_color = Color(0.5 + color_value * 0.3, 0.4, 0.3)
+	# Abad
+	var abad = _create_character("Abad", Color(1, 0.8, 0.2), Vector3(128, 2, 48))
+	abad.set_script(Personaje3DScript)
+	abad.set("tipo", 0)
+	abad.set("nombre", "Abad")
+	add_child(abad)
 
-	parent.add_child(instance)
+	# Monjes
+	var monjes_data := [
+		{"nombre": "Adso", "color": Color(0.8, 0.8, 0.8), "pos": Vector3(80, 2, 60)},
+		{"nombre": "Malaquías", "color": Color(0.7, 0.7, 0.9), "pos": Vector3(48, 2, 48)},
+		{"nombre": "Berengario", "color": Color(0.9, 0.7, 0.7), "pos": Vector3(96, 2, 96)},
+		{"nombre": "Severino", "color": Color(0.7, 0.9, 0.7), "pos": Vector3(100, 2, 32)},
+		{"nombre": "Bernardo", "color": Color(0.85, 0.85, 0.6), "pos": Vector3(140, 2, 140)},
+		{"nombre": "Jorge", "color": Color(0.6, 0.6, 0.6), "pos": Vector3(32, 2, 100)},
+	]
 
-func _clear_meshes() -> void:
-	for child in floor_meshes.get_children():
-		child.queue_free()
+	for i in range(monjes_data.size()):
+		var d = monjes_data[i]
+		var monje = _create_character(d["nombre"], d["color"], d["pos"])
+		monje.set_script(Personaje3DScript)
+		monje.set("tipo", i + 1)
+		monje.set("nombre", d["nombre"])
+		add_child(monje)
 
-func set_floor(index: int) -> void:
-	floor_index = index
-	_generate_floor()
+func _create_character(nombre: String, color: Color, pos: Vector3) -> Node3D:
+	var char_node = Node3D.new()
+	char_node.name = nombre
+	char_node.position = pos
+
+	# Cuerpo (capsula simplificada)
+	var body = MeshInstance3D.new()
+	var capsule = CapsuleMesh.new()
+	capsule.radius = 0.4
+	capsule.height = 1.2
+	body.mesh = capsule
+	body.position.y = 0.8
+
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = color
+	body.material_override = mat
+
+	char_node.add_child(body)
+
+	# Cabeza
+	var head = MeshInstance3D.new()
+	var sphere = SphereMesh.new()
+	sphere.radius = 0.25
+	head.mesh = sphere
+	head.position.y = 1.6
+
+	var head_mat = StandardMaterial3D.new()
+	head_mat.albedo_color = Color(0.9, 0.8, 0.7)
+	head.material_override = head_mat
+
+	char_node.add_child(head)
+
+	return char_node
