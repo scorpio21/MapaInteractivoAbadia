@@ -1,42 +1,88 @@
 extends Node2D
 
-@onready var ruta = $RutaAbad
-var follow: PathFollow2D
-var velocidad_abad := 80.0
+const AbbeyMapScript = preload("res://scripts/AbbeyMap.gd")
+const PathFinderScript = preload("res://scripts/PathFinder.gd")
+const AbadIAScript = preload("res://scripts/AbadIA.gd")
+const MonjeIAScript = preload("res://scripts/MonjeIA.gd")
 
-func _ready():
-	_crear_ruta_abad()
+var abbey_map
+var path_finder
+var abad
+var monjes := []
+var zonas := {}
 
-	for area in get_tree().get_nodes_in_group("zona_interactiva"):
-		area.connect("area_entered", Callable(self, "_on_area_entered"))
+func _ready() -> void:
+	abbey_map = AbbeyMapScript.new()
+	path_finder = PathFinderScript.new(abbey_map)
+	_crear_zonas()
+	_crear_personajes()
 
-func _process(delta: float) -> void:
-	if follow:
-		follow.progress += velocidad_abad * delta
+func _crear_zonas() -> void:
+	var zonas_datos := {
+		"iglesia": {"rect": Rect2(500, 0, 200, 200), "prohibida": false},
+		"claustro": {"rect": Rect2(0, 0, 200, 200), "prohibida": false},
+		"refectorio": {"rect": Rect2(200, 200, 200, 200), "prohibida": false},
+		"celda_abad": {"rect": Rect2(400, 400, 100, 100), "prohibida": true},
+		"celda_guillermo": {"rect": Rect2(300, 400, 100, 100), "prohibida": false},
+		"cocina": {"rect": Rect2(0, 200, 200, 200), "prohibida": false},
+		"scriptorium": {"rect": Rect2(0, 400, 200, 200), "prohibida": false},
+		"biblioteca": {"rect": Rect2(200, 400, 200, 200), "prohibida": true},
+		"entrada": {"rect": Rect2(500, 400, 200, 200), "prohibida": false},
+	}
 
-func _crear_ruta_abad():
-	var curve = Curve2D.new()
-	curve.add_point(Vector2(0, 0))
-	curve.add_point(Vector2(300, 0))
-	curve.add_point(Vector2(300, 200))
-	curve.add_point(Vector2(0, 200))
-	ruta.curve = curve
+	for nombre in zonas_datos:
+		var datos = zonas_datos[nombre]
+		var zona = Area2D.new()
+		zona.name = nombre
+		zona.position = datos["rect"].position
 
-	follow = PathFollow2D.new()
-	follow.loop = true
-	ruta.add_child(follow)
+		var shape = CollisionShape2D.new()
+		var rect_shape = RectangleShape2D.new()
+		rect_shape.size = datos["rect"].size
+		shape.shape = rect_shape
+		zona.add_child(shape)
 
-	var abad = Sprite2D.new()
-	abad.texture = load("res://assets/abad.png")
-	abad.scale = Vector2(0.5, 0.5)
+		if datos["prohibida"]:
+			zona.add_to_group("zona_prohibida")
+
+		zona.add_to_group("zona_interactiva")
+		add_child(zona)
+		zonas[nombre] = zona
+
+func _crear_personajes() -> void:
+	abad = AbadIAScript.new()
+	abad.name = "Abad"
+	abad.position = Vector2(0x88, 0x3c)
 	abad.modulate = Color(1, 0.8, 0.2)
-	follow.add_child(abad)
+	add_child(abad)
 
-func _on_area_entered(area: Area2D) -> void:
-	var ui := get_tree().get_root().get_node("Main/UI")
-	var reloj := get_tree().get_root().get_node("Main/Reloj")
+	var tipos_monjes := [
+		{"tipo": 0, "nombre": "Berengario", "pos": Vector2(0x54, 0x3c)},
+		{"tipo": 1, "nombre": "Malaquías", "pos": Vector2(0x3a, 0x34)},
+		{"tipo": 2, "nombre": "Severino", "pos": Vector2(0x68, 0x61)},
+		{"tipo": 0, "nombre": "Bernardo", "pos": Vector2(0x88, 0x84)},
+		{"tipo": 3, "nombre": "Jorge", "pos": Vector2(0x3a, 0x0f)},
+	]
 
-	if area.is_in_group("zona_prohibida") and reloj.es_hora_prohibida():
-		ui.mostrar_aviso_prohibido(area.name)
-	else:
-		ui.mostrar_mensaje("Has entrado en: " + area.name)
+	for datos in tipos_monjes:
+		var monje = MonjeIAScript.new()
+		monje.name = datos["nombre"]
+		monje.set("tipo", datos["tipo"])
+		monje.set("nombre", datos["nombre"])
+		monje.position = datos["pos"]
+		monje.modulate = Color(0.8, 0.8, 0.8)
+		add_child(monje)
+		monjes.append(monje)
+
+func get_zona_en_posicion(pos: Vector2) -> String:
+	for nombre in zonas:
+		var zona = zonas[nombre]
+		if zona.get_global_rect().has_point(pos):
+			return nombre
+	return ""
+
+func get_abbey_map():
+	return abbey_map
+
+func get_path_finder():
+	return path_finder

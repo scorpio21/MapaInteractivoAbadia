@@ -14,6 +14,10 @@ config/name="Mapa interactivo La Abadía del Crimen"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7")
 
+[autoload]
+
+Horario="*res://scripts/Reloj.gd"
+
 [display]
 
 window/size/viewport_width=800
