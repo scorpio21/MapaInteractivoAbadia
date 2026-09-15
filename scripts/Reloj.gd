@@ -3,7 +3,7 @@ extends Node
 signal hora_cambiada(hora: int, nombre: String)
 signal momento_cambiado(momento: String)
 
-# Momentos del día (extraído de MomentosDia.java)
+# Momentos del día (extraído de GameLogic.js)
 enum MomentoDia {
 	NOCHE,
 	PRIMA,
@@ -14,10 +14,23 @@ enum MomentoDia {
 	COMPLETAS,
 }
 
-var momento_actual: int = MomentoDia.NOCHE
+# Duración de cada momento por día (extraído de GameLogic.js)
+# Valores en ticks de 256 ( TICK_TIME * 256 = 45ms * 256 = 11520ms ≈ 11.5s por tick)
+var DURACIONES := [
+	[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],  # Día 1
+	[0x00, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00],  # Día 2
+	[0x00, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00],  # Día 3
+	[0x0f, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00],  # Día 4
+	[0x0f, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00],  # Día 5
+	[0x0f, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00],  # Día 6
+	[0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],  # Día 7
+]
+
+var momento_actual: int = MomentoDia.SEXTA  # Empieza en Sexta como en el original
 var dia: int = 1
-var minuto_actual: float = 0.0
+var minuto_actual: float = 720.0  # 12:00 (Sexta)
 var velocidad_tiempo: float = 30.0
+var timer_avance: Timer
 
 var nombres_momentos := {
 	MomentoDia.NOCHE: "Noche",
@@ -39,17 +52,27 @@ var minutos_por_momento := {
 	MomentoDia.COMPLETAS: 1260,
 }
 
+func _ready() -> void:
+	timer_avance = Timer.new()
+	timer_avance.one_shot = true
+	timer_avance.timeout.connect(_on_timer_avance)
+	add_child(timer_avance)
+	_iniciar_timer()
+
+func _iniciar_timer() -> void:
+	var duracion = DURACIONES[dia - 1][momento_actual]
+	if duracion > 0:
+		var tiempo_real = duracion * 45.0 * 256.0 / 1000.0  # Convertir a segundos
+		timer_avance.start(tiempo_real)
+
+func _on_timer_avance() -> void:
+	avanzar_momento_dia()
+
 func _process(delta: float) -> void:
 	minuto_actual += velocidad_tiempo * delta
 
 	if minuto_actual >= 1440.0:
 		minuto_actual -= 1440.0
-
-	var nuevo_momento := _calcular_momento()
-	if nuevo_momento != momento_actual:
-		momento_actual = nuevo_momento
-		momento_cambiado.emit(nombres_momentos[momento_actual])
-		hora_cambiada.emit(int(minuto_actual), nombres_momentos[momento_actual])
 
 func _calcular_momento() -> int:
 	if minuto_actual < 360:
@@ -68,6 +91,8 @@ func _calcular_momento() -> int:
 		return MomentoDia.COMPLETAS
 
 func avanzar_momento_dia() -> void:
+	timer_avance.stop()
+
 	var siguientes := {
 		MomentoDia.NOCHE: MomentoDia.PRIMA,
 		MomentoDia.PRIMA: MomentoDia.TERCIA,
@@ -83,8 +108,13 @@ func avanzar_momento_dia() -> void:
 
 	if momento_actual == MomentoDia.NOCHE:
 		dia += 1
+		if dia > 7:
+			dia = 1
 
 	momento_cambiado.emit(nombres_momentos[momento_actual])
+	hora_cambiada.emit(int(minuto_actual), nombres_momentos[momento_actual])
+
+	_iniciar_timer()
 
 func es_hora_prohibida() -> bool:
 	return momento_actual == MomentoDia.NOCHE
@@ -99,3 +129,6 @@ func get_momento_nombre() -> String:
 
 func get_dia() -> int:
 	return dia
+
+func is_night() -> bool:
+	return momento_actual == MomentoDia.COMPLETAS or momento_actual == MomentoDia.NOCHE

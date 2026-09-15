@@ -1,6 +1,8 @@
 extends Node
 
-# Algoritmo BFS extraído de BuscadorRutas.java
+# Algoritmo BFS extraído de ultrabolido/abadia
+# IMPORTANTE: 0 = conectado, 1 = bloqueado
+
 var abbey_map
 
 func _init(mapa) -> void:
@@ -31,16 +33,17 @@ func buscar_camino(planta: int, origen: Vector2i, destino: Vector2i) -> Array:
 
 func _obtener_vecinos(planta: int, pos: Vector2i) -> Array:
 	var vecinos := []
-	var conexion = abbey_map.get_conexion(planta, pos.x, pos.y)
+	var conexion = abbey_map.get_room_connections(planta, pos.x, pos.y)
 
-	if conexion & 0x01:
+	# En el original: 0 = conectado, 1 = bloqueado
+	if conexion & 0x01 == 0:
 		vecinos.append(pos + Vector2i(1, 0))
-	if conexion & 0x02:
-		vecinos.append(pos + Vector2i(0, 1))
-	if conexion & 0x04:
-		vecinos.append(pos + Vector2i(-1, 0))
-	if conexion & 0x08:
+	if conexion & 0x02 == 0:
 		vecinos.append(pos + Vector2i(0, -1))
+	if conexion & 0x04 == 0:
+		vecinos.append(pos + Vector2i(-1, 0))
+	if conexion & 0x08 == 0:
+		vecinos.append(pos + Vector2i(0, 1))
 
 	return vecinos
 
@@ -71,13 +74,16 @@ func _buscar_escaleras(planta_origen: int, planta_destino: int) -> Array:
 
 	for y in range(16):
 		for x in range(16):
-			var conexion = abbey_map.get_conexion(planta_origen, x, y)
-			if planta_destino > planta_origen and (conexion & 0x10):
+			var conexion = abbey_map.get_room_connections(planta_origen, x, y)
+			if planta_destino > planta_origen and (conexion & 0x10) == 0:
 				escaleras.append(Vector2i(x, y))
-			elif planta_destino < planta_origen and (conexion & 0x20):
+			elif planta_destino < planta_origen and (conexion & 0x20) == 0:
 				escaleras.append(Vector2i(x, y))
 
 	return escaleras
 
 func verificar_conexion(planta: int, origen: Vector2i, destino: Vector2i) -> bool:
 	return buscar_camino(planta, origen, destino).size() > 0
+
+func get_conexion(planta: int, x: int, y: int) -> int:
+	return abbey_map.get_room_connections(planta, x, y)

@@ -57,11 +57,12 @@ func _crear_personajes() -> void:
 	add_child(abad)
 
 	var tipos_monjes := [
-		{"tipo": 0, "nombre": "Berengario", "pos": Vector2(0x54, 0x3c)},
+		{"tipo": 0, "nombre": "Adso", "pos": Vector2(0x54, 0x3c)},
 		{"tipo": 1, "nombre": "Malaquías", "pos": Vector2(0x3a, 0x34)},
-		{"tipo": 2, "nombre": "Severino", "pos": Vector2(0x68, 0x61)},
-		{"tipo": 0, "nombre": "Bernardo", "pos": Vector2(0x88, 0x84)},
-		{"tipo": 3, "nombre": "Jorge", "pos": Vector2(0x3a, 0x0f)},
+		{"tipo": 2, "nombre": "Berengario", "pos": Vector2(0x68, 0x61)},
+		{"tipo": 3, "nombre": "Severino", "pos": Vector2(0x88, 0x84)},
+		{"tipo": 4, "nombre": "Bernardo", "pos": Vector2(0x3a, 0x0f)},
+		{"tipo": 5, "nombre": "Jorge", "pos": Vector2(0xc7, 0x27)},
 	]
 
 	for datos in tipos_monjes:
