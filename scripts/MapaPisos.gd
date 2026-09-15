@@ -1,6 +1,8 @@
 extends Node2D
 
 @onready var ruta = $RutaAbad
+var follow: PathFollow2D
+var velocidad_abad := 50.0
 
 func _ready():
 	_crear_ruta_abad()
@@ -8,8 +10,12 @@ func _ready():
 	for area in get_tree().get_nodes_in_group("zona_interactiva"):
 		area.connect("area_entered", Callable(self, "_on_area_entered"))
 
+func _process(delta: float) -> void:
+	if follow:
+		follow.progress += velocidad_abad * delta
+
 func _crear_ruta_abad():
-	var follow = PathFollow2D.new()
+	follow = PathFollow2D.new()
 	ruta.add_child(follow)
 
 	var abad = Sprite2D.new()
@@ -18,8 +24,6 @@ func _crear_ruta_abad():
 	follow.add_child(abad)
 
 	follow.loop = true
-	follow.set_process(true)
-	follow.speed = 50
 
 func _on_area_entered(area: Area2D) -> void:
 	var ui := get_tree().get_root().get_node("Main/UI")

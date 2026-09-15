@@ -1,6 +1,22 @@
-[gd_scene format=3]
+[gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/UI.gd" id="1_dj8aq"]
+[ext_resource type="Script" path="res://scripts/UI.gd" id="1_script"]
 
-[node name="UI" type="CanvasLayer" unique_id=231209887]
-script = ExtResource("1_dj8aq")
+[node name="UI" type="CanvasLayer"]
+script = ExtResource("1_script")
+
+[node name="Panel" type="Panel" parent="."]
+
+[node name="LabelInfo" type="Label" parent="Panel"]
+offset_left = 10.0
+offset_top = 5.0
+offset_right = 400.0
+offset_bottom = 25.0
+text = "Mapa interactivo La Abadía del Crimen"
+
+[node name="LabelHora" type="Label" parent="Panel"]
+offset_left = 10.0
+offset_top = 30.0
+offset_right = 200.0
+offset_bottom = 50.0
+text = "Hora: 22"

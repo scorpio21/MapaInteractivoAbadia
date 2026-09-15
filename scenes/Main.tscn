@@ -1,3 +1,19 @@
-[gd_scene format=3]
+[gd_scene load_steps=5 format=3]
 
-[node name="Main" type="Node2D" unique_id=558021416]
+[ext_resource type="PackedScene" path="res://scenes/MapaPisos.tscn" id="1_mapa"]
+[ext_resource type="PackedScene" path="res://scenes/Jugador.tscn" id="2_jugador"]
+[ext_resource type="PackedScene" path="res://scenes/UI.tscn" id="3_ui"]
+[ext_resource type="Script" path="res://scripts/Reloj.gd" id="4_reloj"]
+
+[node name="Main" type="Node2D"]
+
+[node name="MapaPisos" parent="." instance=ExtResource("1_mapa")]
+
+[node name="Jugador" parent="." instance=ExtResource("2_jugador")]
+
+[node name="UI" parent="." instance=ExtResource("3_ui")]
+
+[node name="Reloj" type="Node" parent="."]
+script = ExtResource("4_reloj")
+
+[node name="Audio" type="AudioStreamPlayer" parent="."]
