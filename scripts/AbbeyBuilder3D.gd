@@ -37,24 +37,10 @@ func _generate_map() -> void:
 	var floor_data = floors_data[floor_index]
 	var room_grid = floor_data["room"]
 
-	# Ground plane
-	var ground = MeshInstance3D.new()
-	var plane = PlaneMesh.new()
-	plane.size = Vector2(512, 512)
-	ground.mesh = plane
-	ground.position = Vector3(128, -0.1, 128)
-	var gm = StandardMaterial3D.new()
-	gm.albedo_color = Color(0.18, 0.3, 0.12)
-	gm.cull_mode = BaseMaterial3D.CULL_DISABLED
-	ground.material_override = gm
-	add_child(ground)
-
-	# Batch walls into one mesh
 	var walls_st = SurfaceTool.new()
 	walls_st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var wall_count = 0
 
-	# Batch floors/platforms into one mesh
 	var floors_st = SurfaceTool.new()
 	floors_st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var floor_count = 0
@@ -81,7 +67,7 @@ func _generate_map() -> void:
 						_add_box(walls_st, px, pz, tile_size, tile_size * 2)
 						wall_count += 1
 					else:
-						var ph = float(h) * 0.3
+						var ph = float(h) * 0.5
 						_add_box(floors_st, px, pz, tile_size, ph)
 						floor_count += 1
 
@@ -90,6 +76,7 @@ func _generate_map() -> void:
 
 	var wall_inst = MeshInstance3D.new()
 	wall_inst.mesh = wall_mesh
+	wall_inst.name = "Walls"
 	var wm = StandardMaterial3D.new()
 	wm.albedo_color = Color(0.35, 0.3, 0.22)
 	wm.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -101,6 +88,7 @@ func _generate_map() -> void:
 
 	var floor_inst = MeshInstance3D.new()
 	floor_inst.mesh = floor_mesh
+	floor_inst.name = "Floors"
 	var fm = StandardMaterial3D.new()
 	fm.albedo_color = Color(0.55, 0.45, 0.35)
 	fm.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -116,42 +104,41 @@ func _add_box(st: SurfaceTool, x: float, z: float, size: float, height: float) -
 	var y0 = 0.0
 	var y1 = height
 
-	# Only add 3 visible faces (top + 2 sides) to reduce triangles
-	# Top face
-	st.add_vertex(Vector3(x - s, y1, z - s))
-	st.add_vertex(Vector3(x + s, y1, z - s))
-	st.add_vertex(Vector3(x + s, y1, z + s))
-	st.add_vertex(Vector3(x - s, y1, z - s))
-	st.add_vertex(Vector3(x + s, y1, z + s))
-	st.add_vertex(Vector3(x - s, y1, z + s))
+	# Top
+	st.add_vertex(Vector3(x-s, y1, z-s))
+	st.add_vertex(Vector3(x+s, y1, z-s))
+	st.add_vertex(Vector3(x+s, y1, z+s))
+	st.add_vertex(Vector3(x-s, y1, z-s))
+	st.add_vertex(Vector3(x+s, y1, z+s))
+	st.add_vertex(Vector3(x-s, y1, z+s))
 	# Front
-	st.add_vertex(Vector3(x - s, y0, z - s))
-	st.add_vertex(Vector3(x + s, y0, z - s))
-	st.add_vertex(Vector3(x + s, y1, z - s))
-	st.add_vertex(Vector3(x - s, y0, z - s))
-	st.add_vertex(Vector3(x + s, y1, z - s))
-	st.add_vertex(Vector3(x - s, y1, z - s))
+	st.add_vertex(Vector3(x-s, y0, z-s))
+	st.add_vertex(Vector3(x+s, y0, z-s))
+	st.add_vertex(Vector3(x+s, y1, z-s))
+	st.add_vertex(Vector3(x-s, y0, z-s))
+	st.add_vertex(Vector3(x+s, y1, z-s))
+	st.add_vertex(Vector3(x-s, y1, z-s))
 	# Back
-	st.add_vertex(Vector3(x + s, y0, z + s))
-	st.add_vertex(Vector3(x - s, y0, z + s))
-	st.add_vertex(Vector3(x - s, y1, z + s))
-	st.add_vertex(Vector3(x + s, y0, z + s))
-	st.add_vertex(Vector3(x - s, y1, z + s))
-	st.add_vertex(Vector3(x + s, y1, z + s))
+	st.add_vertex(Vector3(x+s, y0, z+s))
+	st.add_vertex(Vector3(x-s, y0, z+s))
+	st.add_vertex(Vector3(x-s, y1, z+s))
+	st.add_vertex(Vector3(x+s, y0, z+s))
+	st.add_vertex(Vector3(x-s, y1, z+s))
+	st.add_vertex(Vector3(x+s, y1, z+s))
 	# Left
-	st.add_vertex(Vector3(x - s, y0, z + s))
-	st.add_vertex(Vector3(x - s, y0, z - s))
-	st.add_vertex(Vector3(x - s, y1, z - s))
-	st.add_vertex(Vector3(x - s, y0, z + s))
-	st.add_vertex(Vector3(x - s, y1, z - s))
-	st.add_vertex(Vector3(x - s, y1, z + s))
+	st.add_vertex(Vector3(x-s, y0, z+s))
+	st.add_vertex(Vector3(x-s, y0, z-s))
+	st.add_vertex(Vector3(x-s, y1, z-s))
+	st.add_vertex(Vector3(x-s, y0, z+s))
+	st.add_vertex(Vector3(x-s, y1, z-s))
+	st.add_vertex(Vector3(x-s, y1, z+s))
 	# Right
-	st.add_vertex(Vector3(x + s, y0, z - s))
-	st.add_vertex(Vector3(x + s, y0, z + s))
-	st.add_vertex(Vector3(x + s, y1, z + s))
-	st.add_vertex(Vector3(x + s, y0, z - s))
-	st.add_vertex(Vector3(x + s, y1, z + s))
-	st.add_vertex(Vector3(x + s, y1, z - s))
+	st.add_vertex(Vector3(x+s, y0, z-s))
+	st.add_vertex(Vector3(x+s, y0, z+s))
+	st.add_vertex(Vector3(x+s, y1, z+s))
+	st.add_vertex(Vector3(x+s, y0, z-s))
+	st.add_vertex(Vector3(x+s, y1, z+s))
+	st.add_vertex(Vector3(x+s, y1, z-s))
 
 func _add_characters() -> void:
 	var script = preload("res://scripts/Personaje3D.gd")
