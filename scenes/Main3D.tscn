@@ -1,17 +1,11 @@
-[gd_scene load_steps=5 format=3 uid="uid://a1b2c3d4e5f6"]
+[gd_scene load_steps=3 format=3 uid="uid://a1b2c3d4e5f6"]
 
 [ext_resource type="PackedScene" path="res://scenes/Mapa3D.tscn" id="1_mapa3d"]
-[ext_resource type="PackedScene" path="res://scenes/Jugador.tscn" id="2_jugador"]
-[ext_resource type="PackedScene" path="res://scenes/UI.tscn" id="3_ui"]
 [ext_resource type="Script" path="res://scripts/Reloj.gd" id="4_reloj"]
 
 [node name="Main3D" type="Node3D"]
 
 [node name="Mapa3D" parent="." instance=ExtResource("1_mapa3d")]
-
-[node name="Jugador" parent="." instance=ExtResource("2_jugador")]
-
-[node name="UI" parent="." instance=ExtResource("3_ui")]
 
 [node name="Horario" type="Node" parent="."]
 script = ExtResource("4_reloj")

@@ -1,26 +1,19 @@
 extends Node3D
 
 # Generador de mapa 3D desde JSON de ultrabolido/abadia
-# Usa heightData para crear la malla isométrica
 
-@export var tile_size: float = 1.0
-@export var height_scale: float = 0.5
+@export var tile_size: float = 2.0
+@export var height_scale: float = 1.0
 @export var floor_index: int = 0
 
 var floors_data: Array = []
 var rooms_data: Array = []
-
 var floor_meshes: Node3D
-var walls_meshes: Node3D
 
 func _ready() -> void:
 	floor_meshes = Node3D.new()
 	floor_meshes.name = "FloorMeshes"
 	add_child(floor_meshes)
-
-	walls_meshes = Node3D.new()
-	walls_meshes.name = "WallsMeshes"
-	add_child(walls_meshes)
 
 	_load_data()
 	_generate_floor()
@@ -32,7 +25,11 @@ func _load_data() -> void:
 		var error = json.parse(floors_file.get_as_text())
 		if error == OK:
 			floors_data = json.data
+		else:
+			push_warning("Error parsing floors.json: " + json.get_error_message())
 		floors_file.close()
+	else:
+		push_warning("No se pudo abrir floors.json")
 
 	var rooms_file = FileAccess.open("res://data/rooms.json", FileAccess.READ)
 	if rooms_file:
@@ -40,7 +37,11 @@ func _load_data() -> void:
 		var error = json.parse(rooms_file.get_as_text())
 		if error == OK:
 			rooms_data = json.data
+		else:
+			push_warning("Error parsing rooms.json: " + json.get_error_message())
 		rooms_file.close()
+	else:
+		push_warning("No se pudo abrir rooms.json")
 
 func _generate_floor() -> void:
 	if floors_data.is_empty() or rooms_data.is_empty():
@@ -57,10 +58,12 @@ func _generate_floor() -> void:
 			var room_id = room_grid[ry][rx]
 			if room_id == 0:
 				continue
-
 			_generate_room(room_id, rx, ry)
 
 func _generate_room(room_id: int, grid_x: int, grid_y: int) -> void:
+	if room_id < 1 or room_id > rooms_data.size():
+		return
+
 	var room = rooms_data[room_id - 1]
 	var height_data = room["heightData"]
 
@@ -79,25 +82,25 @@ func _generate_room(room_id: int, grid_x: int, grid_y: int) -> void:
 
 func _create_wall(parent: Node3D, x: int, y: int) -> void:
 	var box = BoxMesh.new()
-	box.size = Vector3(tile_size, tile_size * 3, tile_size)
+	box.size = Vector3(tile_size, tile_size * 2, tile_size)
 
 	var instance = MeshInstance3D.new()
 	instance.mesh = box
-	instance.position = Vector3(x * tile_size, tile_size * 1.5, y * tile_size)
+	instance.position = Vector3(x * tile_size, tile_size, y * tile_size)
 
 	var material = StandardMaterial3D.new()
-	material.albedo_color = Color(0.4, 0.3, 0.2)
+	material.albedo_color = Color(0.4, 0.35, 0.25)
 	instance.material_override = material
 
 	parent.add_child(instance)
 
 func _create_platform(parent: Node3D, x: int, y: int, height: int) -> void:
 	var box = BoxMesh.new()
-	box.size = Vector3(tile_size, height * height_scale, tile_size)
+	box.size = Vector3(tile_size, height * height_scale * 0.25, tile_size)
 
 	var instance = MeshInstance3D.new()
 	instance.mesh = box
-	instance.position = Vector3(x * tile_size, height * height_scale * 0.5, y * tile_size)
+	instance.position = Vector3(x * tile_size, height * height_scale * 0.125, y * tile_size)
 
 	var material = StandardMaterial3D.new()
 	var color_value = float(height) / 15.0
@@ -107,8 +110,6 @@ func _create_platform(parent: Node3D, x: int, y: int, height: int) -> void:
 
 func _clear_meshes() -> void:
 	for child in floor_meshes.get_children():
-		child.queue_free()
-	for child in walls_meshes.get_children():
 		child.queue_free()
 
 func set_floor(index: int) -> void:
