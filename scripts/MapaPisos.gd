@@ -2,7 +2,7 @@ extends Node2D
 
 @onready var ruta = $RutaAbad
 var follow: PathFollow2D
-var velocidad_abad := 50.0
+var velocidad_abad := 80.0
 
 func _ready():
 	_crear_ruta_abad()
@@ -15,15 +15,22 @@ func _process(delta: float) -> void:
 		follow.progress += velocidad_abad * delta
 
 func _crear_ruta_abad():
+	var curve = Curve2D.new()
+	curve.add_point(Vector2(0, 0))
+	curve.add_point(Vector2(300, 0))
+	curve.add_point(Vector2(300, 200))
+	curve.add_point(Vector2(0, 200))
+	ruta.curve = curve
+
 	follow = PathFollow2D.new()
+	follow.loop = true
 	ruta.add_child(follow)
 
 	var abad = Sprite2D.new()
 	abad.texture = load("res://assets/abad.png")
 	abad.scale = Vector2(0.5, 0.5)
+	abad.modulate = Color(1, 0.8, 0.2)
 	follow.add_child(abad)
-
-	follow.loop = true
 
 func _on_area_entered(area: Area2D) -> void:
 	var ui := get_tree().get_root().get_node("Main/UI")
