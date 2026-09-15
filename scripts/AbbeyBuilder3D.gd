@@ -178,9 +178,17 @@ func _add_characters() -> void:
 		if h > 0 and h < 15:
 			ground_h = float(h) * 0.5
 
-		var c = Node3D.new()
+		var c = CharacterBody3D.new()
 		c.name = d["n"]
 		c.position = Vector3(pos.x, ground_h + 0.1, pos.z)
+
+		var col = CollisionShape3D.new()
+		var shape = CapsuleShape3D.new()
+		shape.radius = 0.5
+		shape.height = 1.5
+		col.shape = shape
+		col.position.y = 1.0
+		c.add_child(col)
 
 		var body = MeshInstance3D.new()
 		body.mesh = CapsuleMesh.new()
@@ -200,6 +208,16 @@ func _add_characters() -> void:
 		hmat.albedo_color = Color(0.9, 0.8, 0.7)
 		head.material_override = hmat
 		c.add_child(head)
+
+		# Nombre sobre la cabeza
+		var label3d = Label3D.new()
+		label3d.text = d["n"]
+		label3d.position.y = 2.6
+		label3d.font_size = 16
+		label3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label3d.no_depth_test = true
+		label3d.modulate = Color(1, 1, 1, 0.9)
+		c.add_child(label3d)
 
 		c.set_script(script)
 		c.set("tipo", d["t"])
