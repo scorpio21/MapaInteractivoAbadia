@@ -92,7 +92,7 @@ func _physics_process(delta: float) -> void:
 
 	# Update raycast direction
 	ray_cast.target_position = Vector3(dir.x * 1.5, 0, dir.z * 1.5)
-	force_raycast_update()
+	ray_cast.force_raycast_update()
 
 	if ray_cast.is_colliding():
 		# Wall ahead - try sliding along it
