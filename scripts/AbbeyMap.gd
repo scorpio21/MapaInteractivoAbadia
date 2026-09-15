@@ -108,29 +108,29 @@ func get_room_connections(planta: int, x: int, y: int) -> int:
 			return conns[y][x]
 	return 0x0f
 
-func is_connected(planta: int, x: int, y: int, direccion: int) -> int:
+func esta_conectado(planta: int, x: int, y: int, direccion: int) -> bool:
 	return (get_room_connections(planta, x, y) & direccion) == 0
 
 func get_nombre_habitacion(pos: Vector2i) -> String:
 	return nombres_habitaciones.get(pos, "Desconocido")
 
 func puede_ir_derecha(planta: int, x: int, y: int) -> bool:
-	return is_connected(planta, x, y, 0x01)
+	return esta_conectado(planta, x, y, 0x01)
 
 func puede_ir_arriba(planta: int, x: int, y: int) -> bool:
-	return is_connected(planta, x, y, 0x02)
+	return esta_conectado(planta, x, y, 0x02)
 
 func puede_ir_izquierda(planta: int, x: int, y: int) -> bool:
-	return is_connected(planta, x, y, 0x04)
+	return esta_conectado(planta, x, y, 0x04)
 
 func puede_ir_abajo(planta: int, x: int, y: int) -> bool:
-	return is_connected(planta, x, y, 0x08)
+	return esta_conectado(planta, x, y, 0x08)
 
 func puede_subir(planta: int, x: int, y: int) -> bool:
-	return is_connected(planta, x, y, 0x10)
+	return esta_conectado(planta, x, y, 0x10)
 
 func puede_bajar(planta: int, x: int, y: int) -> bool:
-	return is_connected(planta, x, y, 0x20)
+	return esta_conectado(planta, x, y, 0x20)
 
 func get_posiciones_abad() -> Dictionary:
 	return posiciones_abad
