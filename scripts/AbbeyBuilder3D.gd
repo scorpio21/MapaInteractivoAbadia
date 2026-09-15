@@ -6,6 +6,9 @@ extends Node3D
 var floors_data: Array = []
 var rooms_data: Array = []
 
+# Build a lookup: room_grid[y][x] -> room_id
+# And compute world positions from room grid + tile coords
+
 func _ready() -> void:
 	print("=== AbbeyBuilder3D INICIADO ===")
 	call_deferred("_init_map")
@@ -32,6 +35,24 @@ func _load_data() -> void:
 		if json.parse(r.get_as_text()) == OK:
 			rooms_data = json.data
 		r.close()
+
+# Convert room grid coords + tile coords to world position
+# grid_x, grid_y = room position in the 16x16 grid
+# tile_x, tile_y = position within the room (0-15)
+func _room_to_world(grid_x: int, grid_y: int, tile_x: int, tile_y: int) -> Vector3:
+	var wx = grid_x * 16 * tile_size + tile_x * tile_size + tile_size * 0.5
+	var wz = grid_y * 16 * tile_size + tile_y * tile_size + tile_size * 0.5
+	return Vector3(wx, 0, wz)
+
+# Get height at a specific room grid + tile position
+func _get_height_at(grid_x: int, grid_y: int, tile_x: int, tile_y: int) -> int:
+	var floor_data = floors_data[floor_index]
+	var room_grid = floor_data["room"]
+	var room_id = room_grid[grid_y][grid_x]
+	if room_id == 0 or room_id > rooms_data.size():
+		return -1
+	var room = rooms_data[room_id - 1]
+	return room["heightData"][tile_y][tile_x]
 
 func _generate_map() -> void:
 	var floor_data = floors_data[floor_index]
@@ -104,35 +125,30 @@ func _add_box(st: SurfaceTool, x: float, z: float, size: float, height: float) -
 	var y0 = 0.0
 	var y1 = height
 
-	# Top
 	st.add_vertex(Vector3(x-s, y1, z-s))
 	st.add_vertex(Vector3(x+s, y1, z-s))
 	st.add_vertex(Vector3(x+s, y1, z+s))
 	st.add_vertex(Vector3(x-s, y1, z-s))
 	st.add_vertex(Vector3(x+s, y1, z+s))
 	st.add_vertex(Vector3(x-s, y1, z+s))
-	# Front
 	st.add_vertex(Vector3(x-s, y0, z-s))
 	st.add_vertex(Vector3(x+s, y0, z-s))
 	st.add_vertex(Vector3(x+s, y1, z-s))
 	st.add_vertex(Vector3(x-s, y0, z-s))
 	st.add_vertex(Vector3(x+s, y1, z-s))
 	st.add_vertex(Vector3(x-s, y1, z-s))
-	# Back
 	st.add_vertex(Vector3(x+s, y0, z+s))
 	st.add_vertex(Vector3(x-s, y0, z+s))
 	st.add_vertex(Vector3(x-s, y1, z+s))
 	st.add_vertex(Vector3(x+s, y0, z+s))
 	st.add_vertex(Vector3(x-s, y1, z+s))
 	st.add_vertex(Vector3(x+s, y1, z+s))
-	# Left
 	st.add_vertex(Vector3(x-s, y0, z+s))
 	st.add_vertex(Vector3(x-s, y0, z-s))
 	st.add_vertex(Vector3(x-s, y1, z-s))
 	st.add_vertex(Vector3(x-s, y0, z+s))
 	st.add_vertex(Vector3(x-s, y1, z-s))
 	st.add_vertex(Vector3(x-s, y1, z+s))
-	# Right
 	st.add_vertex(Vector3(x+s, y0, z-s))
 	st.add_vertex(Vector3(x+s, y0, z+s))
 	st.add_vertex(Vector3(x+s, y1, z+s))
@@ -143,20 +159,28 @@ func _add_box(st: SurfaceTool, x: float, z: float, size: float, height: float) -
 func _add_characters() -> void:
 	var script = preload("res://scripts/Personaje3D.gd")
 
+	# Posiciones de AbbeyMap.gd: room(room_grid_x, room_grid_y), pos(tile_x, tile_y)
+	# _room_to_world(gx, gy, tx, ty)
 	var chars = [
-		{"n": "Abad", "c": Color(1, 0.8, 0.2), "p": Vector3(128, 0, 48), "t": 0},
-		{"n": "Adso", "c": Color(0.8, 0.8, 0.8), "p": Vector3(80, 0, 60), "t": 1},
-		{"n": "Malaquías", "c": Color(0.7, 0.7, 0.9), "p": Vector3(48, 0, 48), "t": 2},
-		{"n": "Berengario", "c": Color(0.9, 0.7, 0.7), "p": Vector3(96, 0, 96), "t": 3},
-		{"n": "Severino", "c": Color(0.7, 0.9, 0.7), "p": Vector3(100, 0, 32), "t": 4},
-		{"n": "Bernardo", "c": Color(0.85, 0.85, 0.6), "p": Vector3(140, 0, 140), "t": 5},
-		{"n": "Jorge", "c": Color(0.6, 0.6, 0.6), "p": Vector3(32, 0, 100), "t": 6},
+		{"n": "Abad", "c": Color(1, 0.8, 0.2), "gx": 5, "gy": 3, "tx": 4, "ty": 12, "t": 0},
+		{"n": "Adso", "c": Color(0.8, 0.8, 0.8), "gx": 10, "gy": 2, "tx": 5, "ty": 1, "t": 1},
+		{"n": "Malaquías", "c": Color(0.7, 0.7, 0.9), "gx": 3, "gy": 3, "tx": 10, "ty": 4, "t": 2},
+		{"n": "Berengario", "c": Color(0.9, 0.7, 0.7), "gx": 8, "gy": 3, "tx": 8, "ty": 12, "t": 3},
+		{"n": "Severino", "c": Color(0.7, 0.9, 0.7), "gx": 6, "gy": 6, "tx": 8, "ty": 1, "t": 4},
+		{"n": "Bernardo", "c": Color(0.85, 0.85, 0.6), "gx": 8, "gy": 8, "tx": 8, "ty": 4, "t": 5},
+		{"n": "Jorge", "c": Color(0.6, 0.6, 0.6), "gx": 12, "gy": 2, "tx": 7, "ty": 7, "t": 6},
 	]
 
 	for d in chars:
+		var pos = _room_to_world(d["gx"], d["gy"], d["tx"], d["ty"])
+		var h = _get_height_at(d["gx"], d["gy"], d["tx"], d["ty"])
+		var ground_h = 0.0
+		if h > 0 and h < 15:
+			ground_h = float(h) * 0.5
+
 		var c = Node3D.new()
 		c.name = d["n"]
-		c.position = d["p"]
+		c.position = Vector3(pos.x, ground_h + 0.1, pos.z)
 
 		var body = MeshInstance3D.new()
 		body.mesh = CapsuleMesh.new()
