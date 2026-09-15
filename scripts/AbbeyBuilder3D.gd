@@ -229,11 +229,9 @@ func _add_characters() -> void:
 		var label3d = Label3D.new()
 		label3d.text = d["n"]
 		label3d.position.y = 2.8
-		label3d.font_size = 48
-		label3d.pixel_size = 0.01
+		label3d.font_size = 32
+		label3d.pixel_size = 0.005
 		label3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		label3d.no_depth_test = true
-		label3d.fixed_size = true
 		label3d.modulate = Color(1, 1, 0.5, 1.0)
 		c.add_child(label3d)
 
