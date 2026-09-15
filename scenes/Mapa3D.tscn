@@ -1,0 +1,36 @@
+[gd_scene load_steps=3 format=3 uid="uid://d1e2f3a4b5c6"]
+
+[ext_resource type="Script" path="res://scripts/AbbeyBuilder3D.gd" id="1_script"]
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
+sky_top_color = Color(0.4, 0.6, 0.8)
+sky_horizon_color = Color(0.7, 0.8, 0.9)
+ground_bottom_color = Color(0.2, 0.2, 0.3)
+ground_horizon_color = Color(0.5, 0.5, 0.5)
+
+[sub_resource type="Sky" id="Sky"]
+sky_material = SubResource("SkyMaterial")
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 2
+sky = SubResource("Sky")
+ambient_light_source = 2
+ambient_light_color = Color(0.6, 0.6, 0.7)
+ambient_light_energy = 0.5
+
+[node name="Mapa3D" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.707, 0.707, 0, -0.707, 0.707, 0, 10, 0)
+light_energy = 1.0
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.707, 0.707, 0, -0.707, 0.707, 20, 15, 20)
+fov = 60.0
+
+[node name="AbbeyBuilder" type="Node3D" parent="."]
+script = ExtResource("1_script")
