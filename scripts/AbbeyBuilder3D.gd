@@ -86,6 +86,7 @@ func _generate_map() -> void:
 
 					if h == 15:
 						_add_box(walls_st, px, pz, tile_size, tile_size * 2)
+						_add_wall_collision(px, pz, tile_size, tile_size * 2)
 						wall_count += 1
 					else:
 						var ph = float(h) * 0.5
@@ -156,6 +157,21 @@ func _add_box(st: SurfaceTool, x: float, z: float, size: float, height: float) -
 	st.add_vertex(Vector3(x+s, y1, z+s))
 	st.add_vertex(Vector3(x+s, y1, z-s))
 
+var wall_body: StaticBody3D
+
+func _add_wall_collision(x: float, z: float, size: float, height: float) -> void:
+	if wall_body == null:
+		wall_body = StaticBody3D.new()
+		wall_body.name = "WallCollisions"
+		add_child(wall_body)
+
+	var col = CollisionShape3D.new()
+	var box = BoxShape3D.new()
+	box.size = Vector3(size, height, size)
+	col.shape = box
+	col.position = Vector3(x, height * 0.5, z)
+	wall_body.add_child(col)
+
 func _add_characters() -> void:
 	var script = preload("res://scripts/Personaje3D.gd")
 
@@ -212,11 +228,13 @@ func _add_characters() -> void:
 		# Nombre sobre la cabeza
 		var label3d = Label3D.new()
 		label3d.text = d["n"]
-		label3d.position.y = 2.6
-		label3d.font_size = 16
+		label3d.position.y = 2.8
+		label3d.font_size = 48
+		label3d.pixel_size = 0.01
 		label3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		label3d.no_depth_test = true
-		label3d.modulate = Color(1, 1, 1, 0.9)
+		label3d.fixed_size = true
+		label3d.modulate = Color(1, 1, 0.5, 1.0)
 		c.add_child(label3d)
 
 		c.set_script(script)
