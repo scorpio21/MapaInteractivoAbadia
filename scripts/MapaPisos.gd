@@ -1,89 +1,144 @@
 extends Node2D
 
-const AbbeyMapScript = preload("res://scripts/AbbeyMap.gd")
-const PathFinderScript = preload("res://scripts/PathFinder.gd")
-const AbadIAScript = preload("res://scripts/AbadIA.gd")
-const MonjeIAScript = preload("res://scripts/MonjeIA.gd")
+const ScriptInterpreterGD = preload("res://scripts/ScriptInterpreter.gd")
+const TileRendererGD = preload("res://scripts/TileRenderer.gd")
 
-var abbey_map
-var path_finder
-var abad
-var monjes := []
-var zonas := {}
+var interpreter
+var renderer: TileRenderer
+var floors_data = []
+var rooms_data: Array = []
+var rendered_sprites: Array = []
+var current_floor: int = 0
+var rendered_rooms: Dictionary = {}
 
 func _ready() -> void:
-	abbey_map = AbbeyMapScript.new()
-	path_finder = PathFinderScript.new(abbey_map)
-	_crear_zonas()
-	_crear_personajes()
+	interpreter = ScriptInterpreterGD.new()
+	renderer = TileRendererGD.new()
+	add_child(renderer)
 
-func _crear_zonas() -> void:
-	var zonas_datos := {
-		"iglesia": {"rect": Rect2(500, 0, 200, 200), "prohibida": false},
-		"claustro": {"rect": Rect2(0, 0, 200, 200), "prohibida": false},
-		"refectorio": {"rect": Rect2(200, 200, 200, 200), "prohibida": false},
-		"celda_abad": {"rect": Rect2(400, 400, 100, 100), "prohibida": true},
-		"celda_guillermo": {"rect": Rect2(300, 400, 100, 100), "prohibida": false},
-		"cocina": {"rect": Rect2(0, 200, 200, 200), "prohibida": false},
-		"scriptorium": {"rect": Rect2(0, 400, 200, 200), "prohibida": false},
-		"biblioteca": {"rect": Rect2(200, 400, 200, 200), "prohibida": true},
-		"entrada": {"rect": Rect2(500, 400, 200, 200), "prohibida": false},
-	}
+	_load_data()
+	_parse_scripts()
+	_setup_renderer()
+	_render_initial_map()
 
-	for nombre in zonas_datos:
-		var datos = zonas_datos[nombre]
-		var zona = Area2D.new()
-		zona.name = nombre
-		zona.position = datos["rect"].position
+	# Position player at entrance area
+	await get_tree().process_frame
+	var jugadores = get_tree().get_nodes_in_group("jugador")
+	for j in jugadores:
+		var room_pixel_w = 16 * 16 * int(TileRendererGD.SCALE)
+		var room_pixel_h = 20 * 8 * int(TileRendererGD.SCALE)
+		j.position = Vector2(8 * room_pixel_w, 8 * room_pixel_h)
 
-		var shape = CollisionShape2D.new()
-		var rect_shape = RectangleShape2D.new()
-		rect_shape.size = datos["rect"].size
-		shape.shape = rect_shape
-		zona.add_child(shape)
+func _load_data() -> void:
+	var floors_file = FileAccess.open("res://data/floors.json", FileAccess.READ)
+	if floors_file:
+		var json = JSON.new()
+		var err = json.parse(floors_file.get_as_text())
+		if err == OK:
+			floors_data = json.data
+		floors_file.close()
 
-		if datos["prohibida"]:
-			zona.add_to_group("zona_prohibida")
+	var rooms_file = FileAccess.open("res://data/rooms.json", FileAccess.READ)
+	if rooms_file:
+		var json = JSON.new()
+		var err = json.parse(rooms_file.get_as_text())
+		if err == OK:
+			rooms_data = json.data
+		rooms_file.close()
 
-		zona.add_to_group("zona_interactiva")
-		add_child(zona)
-		zonas[nombre] = zona
+	print("Floors: ", floors_data.size(), " Rooms: ", rooms_data.size())
 
-func _crear_personajes() -> void:
-	abad = AbadIAScript.new()
-	abad.name = "Abad"
-	abad.position = Vector2(0x88, 0x3c)
-	abad.modulate = Color(1, 0.8, 0.2)
-	add_child(abad)
+func _parse_scripts() -> void:
+	var scripts_file = FileAccess.open("res://data/scripts.abs", FileAccess.READ)
+	if scripts_file:
+		var text = scripts_file.get_as_text()
+		scripts_file.close()
+		interpreter.parse_scripts(text)
+		print("Scripts parseados: ", interpreter.scripts.size())
 
-	var tipos_monjes := [
-		{"tipo": 0, "nombre": "Adso", "pos": Vector2(0x54, 0x3c)},
-		{"tipo": 1, "nombre": "Malaquías", "pos": Vector2(0x3a, 0x34)},
-		{"tipo": 2, "nombre": "Berengario", "pos": Vector2(0x68, 0x61)},
-		{"tipo": 3, "nombre": "Severino", "pos": Vector2(0x88, 0x84)},
-		{"tipo": 4, "nombre": "Bernardo", "pos": Vector2(0x3a, 0x0f)},
-		{"tipo": 5, "nombre": "Jorge", "pos": Vector2(0xc7, 0x27)},
-	]
+func _setup_renderer() -> void:
+	var tile_texture = load("res://assets/tiles_day.png")
+	if tile_texture == null:
+		print("ERROR: No se pudo cargar tiles_day.png")
+		return
 
-	for datos in tipos_monjes:
-		var monje = MonjeIAScript.new()
-		monje.name = datos["nombre"]
-		monje.set("tipo", datos["tipo"])
-		monje.set("nombre", datos["nombre"])
-		monje.position = datos["pos"]
-		monje.modulate = Color(0.8, 0.8, 0.8)
-		add_child(monje)
-		monjes.append(monje)
+	var tile_file = FileAccess.open("res://data/tiles.json", FileAccess.READ)
+	if tile_file:
+		var json = JSON.new()
+		var err = json.parse(tile_file.get_as_text())
+		if err == OK:
+			renderer.setup(tile_texture, json.data)
+			print("TileRenderer configurado con ", renderer.tile_frames.size(), " tiles")
+		tile_file.close()
 
-func get_zona_en_posicion(pos: Vector2) -> String:
-	for nombre in zonas:
-		var zona = zonas[nombre]
-		if zona.get_global_rect().has_point(pos):
-			return nombre
-	return ""
+func _render_initial_map() -> void:
+	_render_floor(current_floor)
 
-func get_abbey_map():
-	return abbey_map
+func _render_floor(floor_num: int) -> void:
+	_clear_rendered()
 
-func get_path_finder():
-	return path_finder
+	if floor_num >= floors_data.size():
+		return
+
+	var floor = floors_data[floor_num]
+	var room_grid = floor.get("room", [])
+	var total_rooms = 0
+	var total_tiles = 0
+
+	for ry in range(room_grid.size()):
+		var row = room_grid[ry]
+		for rx in range(row.size()):
+			var room_id = row[rx]
+			if room_id > 0:
+				var count = _render_room(floor_num, rx, ry, room_id)
+				if count > 0:
+					total_rooms += 1
+					total_tiles += count
+
+	print("Floor %d: %d rooms rendered, %d total sprites" % [floor_num, total_rooms, total_tiles])
+
+func _render_room(floor_num: int, rx: int, ry: int, room_id: int) -> int:
+	var key = "%d_%d_%d" % [floor_num, rx, ry]
+	if rendered_rooms.has(key):
+		return 0
+
+	if room_id < 1 or room_id > rooms_data.size():
+		return 0
+
+	var room = rooms_data[room_id - 1]
+	var blocks = room.get("blocks", [])
+
+	if blocks.size() == 0:
+		return 0
+
+	interpreter.clear_tile_buffer()
+	for block in blocks:
+		interpreter.execute_block(block)
+
+	var tile_buffer = interpreter.get_tile_buffer()
+
+	var room_pixel_w = 16 * 16 * int(TileRendererGD.SCALE)
+	var room_pixel_h = 20 * 8 * int(TileRendererGD.SCALE)
+	var screen_x = rx * room_pixel_w
+	var screen_y = ry * room_pixel_h
+
+	var sprites = renderer.render_room_at(tile_buffer, self, screen_x, screen_y, floor_num)
+	rendered_rooms[key] = sprites
+	rendered_sprites.append_array(sprites)
+
+	var tile_count = 0
+	for x in range(16):
+		for y in range(20):
+			tile_count += tile_buffer[x][y].size()
+	return tile_count
+
+func _clear_rendered() -> void:
+	for sprites in rendered_rooms.values():
+		renderer.clear_room(sprites)
+	rendered_rooms.clear()
+	rendered_sprites.clear()
+
+func get_world_size() -> Vector2:
+	var room_pixel_w = 16 * 16 * int(TileRendererGD.SCALE)
+	var room_pixel_h = 20 * 8 * int(TileRendererGD.SCALE)
+	return Vector2(16 * room_pixel_w, 12 * room_pixel_h)
