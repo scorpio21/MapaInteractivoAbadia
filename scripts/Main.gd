@@ -31,6 +31,9 @@ func _ready() -> void:
 	go_button.pressed.connect(_on_go_pressed)
 	slider.value_changed.connect(_on_slider_changed)
 
+	var viewport_size = get_viewport_rect().size
+	split_offset = int(viewport_size.x * 0.7)
+
 	_update_ui()
 
 func _on_room_selected(rx: int, ry: int) -> void:
