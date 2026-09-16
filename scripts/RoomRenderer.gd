@@ -20,6 +20,60 @@ var room_cache: Dictionary = {}
 func _init() -> void:
 	pass
 
+func _ready() -> void:
+	var ScriptInterpreterGD = preload("res://scripts/ScriptInterpreter.gd")
+	interpreter = ScriptInterpreterGD.new()
+
+	var floors_file = FileAccess.open("res://data/floors.json", FileAccess.READ)
+	if floors_file:
+		var json = JSON.new()
+		var err = json.parse(floors_file.get_as_text())
+		if err == OK:
+			floors_data = json.data
+		floors_file.close()
+
+	var rooms_file = FileAccess.open("res://data/rooms.json", FileAccess.READ)
+	if rooms_file:
+		var json = JSON.new()
+		var err = json.parse(rooms_file.get_as_text())
+		if err == OK:
+			rooms_data = json.data
+		rooms_file.close()
+
+	var scripts_file = FileAccess.open("res://data/scripts.abs", FileAccess.READ)
+	if scripts_file:
+		var text = scripts_file.get_as_text()
+		scripts_file.close()
+		interpreter.parse_scripts(text)
+
+	_load_tileset()
+
+	var bg_color = Color(0.0, 0.502, 0.502)
+	RenderingServer.set_default_clear_color(bg_color)
+
+	var initial_room = _find_initial_room()
+	if initial_room:
+		build_room(current_floor, initial_room[0], initial_room[1])
+
+	_position_player_at_room_center()
+
+func _find_initial_room() -> Array:
+	if current_floor >= floors_data.size():
+		return []
+	var room_grid = floors_data[current_floor].get("room", [])
+	for ry in range(room_grid.size()):
+		var row = room_grid[ry]
+		for rx in range(row.size()):
+			if row[rx] > 0:
+				return [rx, ry]
+	return []
+
+func _position_player_at_room_center() -> void:
+	await get_tree().process_frame
+	var jugadores = get_tree().get_nodes_in_group("jugador")
+	for j in jugadores:
+		j.position = Vector2(8 * TILE_W, 8 * TILE_H)
+
 func setup(interp, floors: Array, rooms: Array) -> void:
 	interpreter = interp
 	floors_data = floors
