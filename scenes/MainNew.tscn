@@ -31,7 +31,7 @@ stretch_mode = 2
 stretch_aspect = 0
 
 [node name="SubViewport" type="SubViewport" parent="HSplit/LeftPanel/SubViewportContainer"]
-size = Vector2(256, 160)
+size = Vector2(512, 320)
 render_target_update_mode = 3
 transparent_bg = false
 
