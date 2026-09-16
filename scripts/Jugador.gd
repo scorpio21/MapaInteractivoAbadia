@@ -60,7 +60,7 @@ func _find_audio() -> AudioStreamPlayer:
 		return main.get_node_or_null("Audio")
 	return null
 
-func _physics_process(delta):
+func _physics_process(_delta):
 	var dir := Vector2.ZERO
 	if Input.is_action_pressed("ui_right"): dir.x += 1
 	if Input.is_action_pressed("ui_left"):  dir.x -= 1
@@ -105,8 +105,8 @@ func _check_room_transition() -> void:
 	if mapa == null:
 		return
 
-	var tile_x = int(position.x / TILE_W)
-	var tile_y = int(position.y / TILE_H)
+	var tile_x = floori(position.x / TILE_W)
+	var tile_y = floori(position.y / TILE_H)
 
 	var new_rx = current_room_x
 	var new_ry = current_room_y
