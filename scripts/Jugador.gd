@@ -40,7 +40,11 @@ func _setup_sprite():
 			atlas.atlas = tex
 			atlas.region = Rect2(col * 20, row * 36, 20, 36)
 			sprite_frames.add_frame(anim_name, atlas)
-		sprite_frames.add_frame("idle", sprite_frames.get_frame(anim_name, 0))
+		var idle_atlas = AtlasTexture.new()
+		idle_atlas.atlas = tex
+		idle_atlas.region = Rect2(dir_cols[dir] * 20, dir_rows[dir] * 36, 20, 36)
+		sprite_frames.add_frame("idle", idle_atlas)
+		break
 
 	var anim_sprite = AnimatedSprite2D.new()
 	anim_sprite.name = "Sprite"
