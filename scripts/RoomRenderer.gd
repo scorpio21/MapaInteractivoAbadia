@@ -16,6 +16,7 @@ var current_room_x: int = -1
 var current_room_y: int = -1
 var current_sprites: Array = []
 var room_cache: Dictionary = {}
+var current_height_data: Array = []
 
 func _init() -> void:
 	pass
@@ -117,6 +118,7 @@ func build_room(fl: int, rx: int, ry: int) -> void:
 
 	var buffer = _get_room_buffer(room_id)
 	_render_buffer(buffer)
+	current_height_data = rooms_data[room_id - 1].get("heightData", [])
 	print("Room %d at (%d,%d): rendered" % [room_id, rx, ry])
 
 func _get_room_buffer(room_id: int) -> Array:
@@ -169,3 +171,15 @@ func get_room_at(fl: int, rx: int, ry: int) -> int:
 	if ry < 0 or ry >= room_grid.size() or rx < 0 or rx >= room_grid[ry].size():
 		return 0
 	return room_grid[ry][rx]
+
+func is_walkable(tile_x: int, tile_y: int) -> bool:
+	if tile_x < 0 or tile_x >= 16 or tile_y < 0 or tile_y >= 16:
+		return true
+	if current_height_data.size() == 0:
+		return true
+	if tile_y >= current_height_data.size():
+		return true
+	var row = current_height_data[tile_y]
+	if tile_x >= row.size():
+		return true
+	return row[tile_x] > 0

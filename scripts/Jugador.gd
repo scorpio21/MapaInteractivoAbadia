@@ -60,12 +60,20 @@ func _find_audio() -> AudioStreamPlayer:
 		return main.get_node_or_null("Audio")
 	return null
 
-func _physics_process(_delta):
+func _physics_process(delta):
 	var dir := Vector2.ZERO
 	if Input.is_action_pressed("ui_right"): dir.x += 1
 	if Input.is_action_pressed("ui_left"):  dir.x -= 1
 	if Input.is_action_pressed("ui_down"):  dir.y += 1
 	if Input.is_action_pressed("ui_up"):    dir.y -= 1
+
+	if dir != Vector2.ZERO:
+		var next_pos = position + dir.normalized() * SPEED * delta
+		var tile_x = floori(next_pos.x / TILE_W)
+		var tile_y = floori(next_pos.y / TILE_H)
+		var mapa = _get_room_renderer()
+		if mapa and not mapa.is_walkable(tile_x, tile_y):
+			dir = Vector2.ZERO
 
 	velocity = dir.normalized() * SPEED
 	move_and_slide()

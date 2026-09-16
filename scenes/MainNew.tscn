@@ -9,7 +9,7 @@
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 stretch = true
 stretch_mode = 2
-stretch_aspect = 2
+stretch_aspect = 0
 size = Vector2(1280, 720)
 
 [node name="SubViewport" type="SubViewport" parent="SubViewportContainer"]
