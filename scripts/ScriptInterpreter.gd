@@ -279,8 +279,8 @@ func _draw_tile_handler(tile_ref: String) -> void:
 			if t_old["depthY"] > t_new["depthY"]:
 				t_old["depthY"] = t_new["depthY"]
 
-func _eval_expression(exp: String) -> float:
-	var e = exp
+func _eval_expression(expression: String) -> float:
+	var e = expression
 	if flip_x:
 		e = e.replace("X", "Z")
 		e = e.replace("Y", "X")

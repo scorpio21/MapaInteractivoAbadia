@@ -15,7 +15,7 @@ func mostrar_mensaje(texto: String) -> void:
 func mostrar_aviso_prohibido(zona: String) -> void:
 	label_info.text = "Zona prohibida: " + zona
 
-func _on_hora_cambiada(hora: int, nombre: String) -> void:
+func _on_hora_cambiada(_hora: int, _nombre: String) -> void:
 	_actualizar_hora()
 
 func _on_momento_cambiado(momento: String) -> void:
