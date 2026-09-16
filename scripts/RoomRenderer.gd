@@ -17,6 +17,7 @@ var current_room_y: int = -1
 var current_sprites: Array = []
 var room_cache: Dictionary = {}
 var current_height_data: Array = []
+var current_blocks: Array = []
 
 func _init() -> void:
 	pass
@@ -116,10 +117,11 @@ func build_room(fl: int, rx: int, ry: int) -> void:
 	if room_id < 1 or room_id > rooms_data.size():
 		return
 
+	current_blocks = rooms_data[room_id - 1].get("blocks", [])
 	var buffer = _get_room_buffer(room_id)
 	_render_buffer(buffer)
 	current_height_data = rooms_data[room_id - 1].get("heightData", [])
-	print("Room %d at (%d,%d): rendered" % [room_id, rx, ry])
+	print("Room %d at (%d,%d): rendered (%d blocks)" % [room_id, rx, ry, current_blocks.size()])
 
 func _get_room_buffer(room_id: int) -> Array:
 	if room_cache.has(room_id):
@@ -143,20 +145,67 @@ func _render_buffer(buffer: Array) -> void:
 	for x in range(BUFFER_W):
 		for y in range(BUFFER_H):
 			for tile_data in buffer[x][y]:
-				var tile_id = tile_data["tile"]
-				if not tile_frames.has(tile_id):
-					continue
-				var atlas = AtlasTexture.new()
-				atlas.atlas = tile_atlas
-				atlas.region = tile_frames[tile_id]
-				var sprite = Sprite2D.new()
-				sprite.texture = atlas
-				sprite.centered = false
-				sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-				sprite.position = Vector2(x * TILE_W, y * TILE_H)
-				sprite.z_index = tile_data["depthX"] + tile_data["depthY"] - 16
-				add_child(sprite)
-				current_sprites.append(sprite)
+				_add_sprite(x, y, tile_data)
+
+func _add_sprite(x: int, y: int, tile_data: Dictionary) -> void:
+	var tile_id = tile_data["tile"]
+	if not tile_frames.has(tile_id):
+		return
+	var atlas = AtlasTexture.new()
+	atlas.atlas = tile_atlas
+	atlas.region = tile_frames[tile_id]
+	var sprite = Sprite2D.new()
+	sprite.texture = atlas
+	sprite.centered = false
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.position = Vector2(x * TILE_W, y * TILE_H)
+	sprite.z_index = tile_data["depthX"] + tile_data["depthY"] - 16
+	add_child(sprite)
+	current_sprites.append(sprite)
+
+func _render_blocks(max_elements: int) -> void:
+	_clear_sprites()
+	if current_blocks.size() == 0:
+		return
+	var room_id = rooms_data.size() + 1
+	var room_grid = floors_data[current_floor].get("room", [])
+	if current_room_y < room_grid.size() and current_room_x < room_grid[current_room_y].size():
+		room_id = room_grid[current_room_y][current_room_x]
+	if room_id < 1 or room_id > rooms_data.size():
+		return
+
+	var limited_blocks = current_blocks.slice(0, mini(max_elements, current_blocks.size()))
+	interpreter.clear_tile_buffer()
+	for block in limited_blocks:
+		interpreter.execute_block(block)
+	var raw = interpreter.get_tile_buffer()
+
+	for x in range(BUFFER_W):
+		for y in range(BUFFER_H):
+			for tile_data in raw[x][y]:
+				_add_sprite(x, y, tile_data)
+
+func build_room_partial(fl: int, rx: int, ry: int, max_elements: int) -> void:
+	current_floor = fl
+	current_room_x = rx
+	current_room_y = ry
+
+	if fl >= floors_data.size():
+		return
+	var room_grid = floors_data[fl].get("room", [])
+	if ry >= room_grid.size() or rx >= room_grid[ry].size():
+		return
+	var room_id = room_grid[ry][rx]
+	if room_id < 1 or room_id > rooms_data.size():
+		return
+
+	current_blocks = rooms_data[room_id - 1].get("blocks", [])
+	_render_blocks(max_elements)
+	current_height_data = rooms_data[room_id - 1].get("heightData", [])
+	print("Room %d at (%d,%d): partial render %d/%d blocks" % [room_id, rx, ry, mini(max_elements, current_blocks.size()), current_blocks.size()])
+
+func get_block_count() -> int:
+	return current_blocks.size()
 
 func _clear_sprites() -> void:
 	for s in current_sprites:
