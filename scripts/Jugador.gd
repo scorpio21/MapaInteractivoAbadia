@@ -19,9 +19,6 @@ func _ready():
 
 func _setup_sprite():
 	sprite_frames = SpriteFrames.new()
-	sprite_frames.add_animation("idle")
-	sprite_frames.set_animation_speed("idle", 0)
-	sprite_frames.set_animation_loop("idle", true)
 
 	var dir_names = ["south", "west", "north", "east"]
 	var dir_rows = [0, 0, 1, 1]
@@ -40,11 +37,14 @@ func _setup_sprite():
 			atlas.atlas = tex
 			atlas.region = Rect2(col * 20, row * 36, 20, 36)
 			sprite_frames.add_frame(anim_name, atlas)
-		var idle_atlas = AtlasTexture.new()
-		idle_atlas.atlas = tex
-		idle_atlas.region = Rect2(dir_cols[dir] * 20, dir_rows[dir] * 36, 20, 36)
-		sprite_frames.add_frame("idle", idle_atlas)
-		break
+
+	sprite_frames.add_animation("idle")
+	sprite_frames.set_animation_speed("idle", 0)
+	sprite_frames.set_animation_loop("idle", true)
+	var idle_atlas = AtlasTexture.new()
+	idle_atlas.atlas = tex
+	idle_atlas.region = Rect2(0, 0, 20, 36)
+	sprite_frames.add_frame("idle", idle_atlas)
 
 	var anim_sprite = AnimatedSprite2D.new()
 	anim_sprite.name = "Sprite"
@@ -89,7 +89,7 @@ func _play_walk():
 	var s = get_node_or_null("Sprite")
 	if s and s is AnimatedSprite2D:
 		var a = "walk_" + _dir_names[facing]
-		if s.animation != a or not s.playing:
+		if s.animation != a or not s.is_playing():
 			s.play(a)
 
 func _play_idle():
