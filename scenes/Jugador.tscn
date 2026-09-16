@@ -1,16 +1,16 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=2 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/sprites/guillermo_day.png" id="1_guillermo"]
-[ext_resource type="Script" path="res://scripts/Jugador.gd" id="2_script"]
+[ext_resource type="Script" path="res://scripts/Jugador.gd" id="1_script"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_col"]
 size = Vector2(8, 12)
 
 [node name="Jugador" type="CharacterBody2D"]
-script = ExtResource("2_script")
+script = ExtResource("1_script")
 
 [node name="Collision" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_col")
 
 [node name="Camera" type="Camera2D" parent="."]
-zoom = Vector2(4, 4)
+zoom = Vector2(1, 1)
+position_smoothing_enabled = false
