@@ -19,11 +19,12 @@ size_flags_vertical = 3
 split_offset = 900
 
 [node name="LeftPanel" type="VBoxContainer" parent="HSplit"]
-custom_minimum_size = Vector2(800, 0)
+custom_minimum_size = Vector2(1200, 0)
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="HSplit/LeftPanel"]
+custom_minimum_size = Vector2(1200, 750)
 size_flags_horizontal = 3
 size_flags_vertical = 3
 stretch = true
@@ -31,7 +32,7 @@ stretch_mode = 2
 stretch_aspect = 0
 
 [node name="SubViewport" type="SubViewport" parent="HSplit/LeftPanel/SubViewportContainer"]
-size = Vector2(512, 320)
+size = Vector2(256, 160)
 render_target_update_mode = 3
 transparent_bg = false
 
