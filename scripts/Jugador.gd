@@ -68,17 +68,21 @@ func _physics_process(delta):
 	if Input.is_action_pressed("ui_up"):    dir.y -= 1
 
 	if dir != Vector2.ZERO:
-		var next_pos = position + dir.normalized() * SPEED * delta
-		var tile_x = floori(next_pos.x / TILE_W)
-		var tile_y = floori(next_pos.y / TILE_H)
+		var move = dir.normalized() * SPEED * delta
+		var next_x = position.x + move.x
+		var next_y = position.y + move.y
+		var tile_x = floori(next_x / TILE_W)
+		var tile_y = floori(next_y / TILE_H)
 		var mapa = _get_room_renderer()
 		if mapa and not mapa.is_walkable(tile_x, tile_y):
-			dir = Vector2.ZERO
+			move = Vector2.ZERO
+		velocity = move / delta if delta > 0 else Vector2.ZERO
+	else:
+		velocity = Vector2.ZERO
 
-	velocity = dir.normalized() * SPEED
 	move_and_slide()
 
-	if dir != Vector2.ZERO:
+	if dir != Vector2.ZERO and velocity.length() > 0:
 		_update_facing(dir)
 		_play_walk()
 		_check_room_transition()
