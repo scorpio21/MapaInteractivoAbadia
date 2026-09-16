@@ -4,6 +4,8 @@ const ScriptInterpreterGD = preload("res://scripts/ScriptInterpreter.gd")
 const TileRendererGD = preload("res://scripts/TileRenderer.gd")
 
 const SCREEN_OFFSET_X: int = 32
+const TILE_W: int = 16
+const TILE_H: int = 8
 
 var interpreter
 var renderer: TileRenderer
@@ -51,8 +53,8 @@ func _position_player_at_room_center() -> void:
 	var jugadores = get_tree().get_nodes_in_group("jugador")
 	for j in jugadores:
 		j.position = Vector2(
-			SCREEN_OFFSET_X * int(TileRendererGD.SCALE) + 8 * 16 * int(TileRendererGD.SCALE),
-			8 * 8 * int(TileRendererGD.SCALE)
+			SCREEN_OFFSET_X + 8 * TILE_W,
+			8 * TILE_H
 		)
 
 func _load_data() -> void:
@@ -163,10 +165,9 @@ func _render_room(room_data: Array) -> void:
 				if sprite == null:
 					continue
 
-				var pos_x = SCREEN_OFFSET_X * int(TileRendererGD.SCALE) + x * int(TileRendererGD.TILE_W) * int(TileRendererGD.SCALE)
-				var pos_y = y * int(TileRendererGD.TILE_H) * int(TileRendererGD.SCALE)
+				var pos_x = SCREEN_OFFSET_X + x * TILE_W
+				var pos_y = y * TILE_H
 				sprite.position = Vector2(pos_x, pos_y)
-				sprite.scale = Vector2(TileRendererGD.SCALE, TileRendererGD.SCALE)
 				sprite.z_index = int(depth)
 
 				add_child(sprite)
