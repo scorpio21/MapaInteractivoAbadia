@@ -145,11 +145,23 @@ func _check_room_transition() -> void:
 	current_room_y = new_ry
 	position = Vector2(new_tx * TILE_W + TILE_W / 2, new_ty * TILE_H + TILE_H / 2)
 	mapa.build_room(current_floor, current_room_x, current_room_y)
+	_update_floor_plan()
 
 func _get_room_renderer():
 	var main = get_tree().root.get_node_or_null("Main")
 	if main:
-		var container = main.get_node_or_null("SubViewportContainer")
-		if container:
-			return container.get_node_or_null("SubViewport/RoomTiles")
+		var split = main.get_node_or_null("HSplit")
+		if split:
+			var container = split.get_node_or_null("LeftPanel/SubViewportContainer")
+			if container:
+				return container.get_node_or_null("SubViewport/RoomTiles")
 	return null
+
+func _update_floor_plan() -> void:
+	var main = get_tree().root.get_node_or_null("Main")
+	if main:
+		var fp = main.get_node_or_null("HSplit/RightPanel/FloorPlan")
+		if fp and fp is FloorPlan:
+			var room_grid = fp.floors_data[current_floor].get("room", [])
+			if current_room_y >= 0 and current_room_y < room_grid.size() and current_room_x >= 0 and current_room_x < room_grid[current_room_y].size():
+				fp.update_room_by_id(room_grid[current_room_y][current_room_x])

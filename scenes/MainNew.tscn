@@ -6,77 +6,132 @@
 [ext_resource type="Script" path="res://scripts/Main.gd" id="4_main"]
 [ext_resource type="Script" path="res://scripts/FloorPlan.gd" id="5_fp"]
 
-[node name="Main" type="HSplitContainer"]
+[node name="Main" type="VBoxContainer"]
 script = ExtResource("4_main")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="HSplit" type="HSplitContainer" parent="."]
+size_flags_vertical = 3
 split_offset = 900
 
-[node name="LeftPanel" type="VBoxContainer" parent="."]
+[node name="LeftPanel" type="VBoxContainer" parent="HSplit"]
 custom_minimum_size = Vector2(800, 0)
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="SubViewportContainer" type="SubViewportContainer" parent="LeftPanel"]
-custom_minimum_size = Vector2(800, 600)
+[node name="SubViewportContainer" type="SubViewportContainer" parent="HSplit/LeftPanel"]
+size_flags_horizontal = 3
 size_flags_vertical = 3
 stretch = true
 stretch_mode = 2
 stretch_aspect = 0
 
-[node name="SubViewport" type="SubViewport" parent="LeftPanel/SubViewportContainer"]
+[node name="SubViewport" type="SubViewport" parent="HSplit/LeftPanel/SubViewportContainer"]
 size = Vector2(256, 160)
 render_target_update_mode = 3
 transparent_bg = false
 
-[node name="RoomTiles" type="Node2D" parent="LeftPanel/SubViewportContainer/SubViewport"]
+[node name="RoomTiles" type="Node2D" parent="HSplit/LeftPanel/SubViewportContainer/SubViewport"]
 script = ExtResource("1_rr")
 
-[node name="Player" parent="LeftPanel/SubViewportContainer/SubViewport" instance=ExtResource("3_player")]
+[node name="Player" parent="HSplit/LeftPanel/SubViewportContainer/SubViewport" instance=ExtResource("3_player")]
 position = Vector2(128, 64)
 
-[node name="RightPanel" type="VBoxContainer" parent="."]
+[node name="RightPanel" type="VBoxContainer" parent="HSplit"]
 custom_minimum_size = Vector2(300, 0)
 size_flags_horizontal = 3
+size_flags_vertical = 3
 
-[node name="FloorPlan" type="Control" parent="RightPanel"]
+[node name="FloorPlan" type="Control" parent="HSplit/RightPanel"]
 custom_minimum_size = Vector2(280, 224)
 size_flags_horizontal = 3
 script = ExtResource("5_fp")
 
-[node name="Controls" type="VBoxContainer" parent="RightPanel"]
+[node name="Controls" type="GridContainer" parent="HSplit/RightPanel"]
 custom_minimum_size = Vector2(280, 0)
 size_flags_horizontal = 3
+columns = 2
 
-[node name="FloorLabel" type="Label" parent="RightPanel/Controls"]
+[node name="PlantaLabel" type="Label" parent="HSplit/RightPanel/Controls"]
 text = "Planta:"
 
-[node name="FloorSelect" type="OptionButton" parent="RightPanel/Controls"]
-item_count = 3
-popup/item_0 = "Iglesia"
-popup/item_1 = "Scriptorium"
-popup/item_2 = "Biblioteca"
+[node name="FloorSelect" type="OptionButton" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(180, 0)
+size_flags_horizontal = 3
 
-[node name="RoomLabel" type="Label" parent="RightPanel/Controls"]
+[node name="GraficosLabel" type="Label" parent="HSplit/RightPanel/Controls"]
+text = "Gráficos:"
+
+[node name="TilesetSelect" type="OptionButton" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(180, 0)
+size_flags_horizontal = 3
+
+[node name="MapaLabel" type="Label" parent="HSplit/RightPanel/Controls"]
+text = "Mapa:"
+
+[node name="MapSelect" type="OptionButton" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(180, 0)
+size_flags_horizontal = 3
+
+[node name="HabitacionLabel" type="Label" parent="HSplit/RightPanel/Controls"]
 text = "Habitación:"
 
-[node name="RoomInput" type="LineEdit" parent="RightPanel/Controls"]
+[node name="RoomInput" type="LineEdit" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(180, 0)
+size_flags_horizontal = 3
 placeholder_text = "0-115"
 
-[node name="GoButton" type="Button" parent="RightPanel/Controls"]
-text = "Ir a habitación"
+[node name="ExtendedCheck" type="CheckBox" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(0, 28)
+text = "Área extendida"
+size_flags_horizontal = 3
 
-[node name="Info" type="Label" parent="RightPanel"]
+[node name="Empty1" type="Control" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(0, 0)
+size_flags_horizontal = 3
+
+[node name="BorderCheck" type="CheckBox" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(0, 28)
+button_pressed = true
+text = "Mostrar borde"
+size_flags_horizontal = 3
+
+[node name="Empty2" type="Control" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(0, 0)
+size_flags_horizontal = 3
+
+[node name="ProgressiveCheck" type="CheckBox" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(0, 28)
+text = "Pintado progresivo"
+size_flags_horizontal = 3
+
+[node name="Empty3" type="Control" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(0, 0)
+size_flags_horizontal = 3
+
+[node name="MusicCheck" type="CheckBox" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(0, 28)
+text = "Música"
+size_flags_horizontal = 3
+
+[node name="Empty4" type="Control" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(0, 0)
+size_flags_horizontal = 3
+
+[node name="Info" type="Label" parent="HSplit/RightPanel"]
 custom_minimum_size = Vector2(280, 0)
+size_flags_horizontal = 3
 text = "Habitación: 0 — Elementos: 0 — Iglesia"
 
 [node name="BottomBar" type="VBoxContainer" parent="."]
-custom_minimum_size = Vector2(0, 80)
+custom_minimum_size = Vector2(0, 60)
 
 [node name="ElementSlider" type="HBoxContainer" parent="BottomBar"]
+custom_minimum_size = Vector2(0, 30)
 
 [node name="SliderLabel" type="Label" parent="BottomBar/ElementSlider"]
 text = "Elementos"
@@ -92,6 +147,7 @@ value = 32.0
 text = "32/32"
 
 [node name="StatusBar" type="Label" parent="BottomBar"]
+size_flags_horizontal = 3
 text = "Habitación: 0 — Elementos: 0 — Iglesia"
 
 [node name="UI" type="CanvasLayer" parent="."]

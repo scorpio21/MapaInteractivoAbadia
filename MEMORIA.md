@@ -1,12 +1,12 @@
 # MEMORIA — Mapa interactivo La Abadía del Crimen
 
 ## Objetivo
-Recrear el mapa isométrico de *La Abadía del Crimen* (1987) en Godot 4.7 con rendering tile-based usando assets reales del juego, personajes con IA y movimiento del jugador.
+Replicar el visor de habitaciones de La Abadía del Crimen (visor.abadiadelcrimenextensum.com) en Godot 4.7 con rendering tile-based usando assets reales del juego, panel lateral con planos de planta, y movimiento del jugador.
 
 ## Compilar / verificar
 ```powershell
-# Ejecutar headless (verificar errores + sprites renderizados)
-& "E:\Steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe" --path "I:\MapaInteractivoAbadia" --headless --quit 2>&1 | Select-String "ERROR|SCRIPT ERROR|Floor|sprite|render"
+# Ejecutar headless (verificar errores)
+& "E:\Steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe" --path "I:\MapaInteractivoAbadia" --headless --quit 2>&1 | Select-String "ERROR|SCRIPT ERROR"
 
 # Ejecutar con ventana
 & "E:\Steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe" --path "I:\MapaInteractivoAbadia"
@@ -16,25 +16,21 @@ Recrear el mapa isométrico de *La Abadía del Crimen* (1987) en Godot 4.7 con r
 
 ### Hecho
 - ✅ 3D eliminado (commit 9634594)
-- ✅ Assets reales descargados de ultrabolido/abadia: tiles_day.png (256 tiles), 9 sprites de personajes, scripts.abs, tiles.json, adso.json, monk.json, doors.json, objects.json
-- ✅ ScriptInterpreter parsea 113 scripts de scripts.abs correctamente
-- ✅ **FIX stack corruption**: stacks separados `call_stack` (para CALL) y `while_depth` (para WHILE/ENDWHILE)
-- ✅ 0 SCRIPT ERRORs, 559 sprites por habitación
-- ✅ **REDESIGN: renderizado de UNA habitación a la vez** (como el juego original AbadiaBuilder.js)
-- ✅ Fondo teal 0x008080 (BACKGROUND_COLOR_DAY) como el original
-- ✅ SCREEN_OFFSET_X = 32 (centra la sala de 256px en viewport de 320px)
-- ✅ Habitación cacheada en interpreted_rooms para rendimiento
-- ✅ Transición de habitaciones al salir de los límites (0-15)
-- ✅ Commit 01f6386 pushado a GitHub
+- ✅ Assets reales descargados: tiles_day.png, sprites, scripts.abs, tiles.json, floors.json, rooms.json
+- ✅ ScriptInterpreter parsea 113 scripts correctamente, 0 errores
+- ✅ RoomRenderer: rendering tile-based nativo CPC (256×160 px), heightData collision, room caching
+- ✅ Jugador: movimiento con AnimatedSprite2D, 4 direcciones, transiciones de habitación
+- ✅ FloorPlan: imágenes PNG reales de planos de planta (planta0/1/2.png), overlay de selección, tooltip
+- ✅ Panel derecho: Planta/Gráficos/Mapa dropdowns, Habitación input, checkboxes
+- ✅ BottomBar: slider de elementos, status bar
+- ✅ **FIX overlay alignment**: Removido OFFSET del dibujado del overlay en FloorPlan.gd (linea 142)
+- ✅ Verificación de consistencia de coordenadas canvas↔grid (funciones inverse)
 
 ### Activo
-- ⚠️ **Verificar visualmente** — necesito que el usuario compruebe que la habitación se ve correctamente (tiles, colores, fondo teal)
-- ⠿ **Jugador.tscn**: sprite scale=0.5 puede necesitar ajuste para verse proporcionado con tiles 4×
-- ⠿ **Camera2D zoom=4×** — verificar que muestra la habitación completa
+- ⠿ **Verificar visualmente** — El usuario debe comprobar que el overlay se alinea correctamente con las habitaciones en el plano de planta
 
 ### Pendiente
-- 🔲 Verificar que el jugador puede moverse entre habitaciones
-- 🔲 Monjes con IA y patrullas (AbadIA.gd, MonjeIA.gd existen pero no integrados)
+- 🔲 Monjes con IA y patrullas
 - 🔲 Sistema de cambio de pisos
 - 🔲 Zonas interactivas, puertas, objetos
 
@@ -48,22 +44,20 @@ Recrear el mapa isométrico de *La Abadía del Crimen* (1987) en Godot 4.7 con r
 
 ## Siguientes pasos
 
-1. **Verificar visual** — El usuario abre el juego y comprueba que la habitación se ve correctamente (tiles naranjas/teal, fondo teal, personaje visible)
-2. **Ajustar sprite del jugador** — Verificar proporción y posición del sprite de Guillermo con tiles a escala 4×
-3. **Transiciones de habitación** — Probar moverse entre habitaciones con flechas
-4. **Monjes IA** — Integrar AbadIA y MonjeIA con el mapa renderizado
+1. **Verificar overlay** — El usuario abre el juego y comprueba que el rectángulo rojo se alinea con la habitación seleccionada en el plano de planta
+2. **Probar click en plano** — Hacer click en diferentes habitaciones del plano y verificar que se renderizan correctamente
+3. **Transiciones de jugador** — Moverse entre habitaciones con flechas y verificar que el plano se actualiza
+4. **Monjes IA** — Integrar AbadIA y MonjeIA
 5. **Cambio de pisos** — Implementar escaleras entre plantas
 
 ## Gotchas conocidos
-- **El juego original renderiza UNA habitación a la vez** — NO todas a la vez. `AbadiaBuilder.buildRoom(floor, rx, ry)` limpia y re-renderiza
-- Cada habitación se dibuja en posición FIJA: `(SCREEN_OFFSET_X + x*16, y*8)` — ocupa toda la pantalla
-- `SCREEN_OFFSET_X = 32` centra la sala de 256px en viewport de 320px
-- `BACKGROUND_COLOR_DAY = 0x008080` (teal), NO negro
-- Orientación de sala depende de posición en grid: `((rx & 1) << 1) | ((rx & 1) ^ (ry & 1))` — afecta posiciones de actores, NO de tiles
-- `floors.json` es Array de 3 pisos, `room[ry][rx]` da room_id
+- **El juego original renderiza UNA habitación a la vez** — NO todas a la vez
+- Cada habitación se dibuja en posición FIJA: `(x*16, y*8)` en el SubViewport
+- `BACKGROUND_COLOR_DAY = 0x008080` (teal)
+- `floors.json` es Array de 3 pisos, `room[ry][rx]` da room_id (1-based)
 - `rooms.json` es Array de 116 habitaciones, cada una con `blocks` y `heightData[16][16]`
-- `SCRIPT` naming: `script_id = "SCRIPT" + str(type >> 1)`
-- Tile buffer: 16×20 grid (no 16×16), cada celda array de `{tile, depthX, depthY}`
-- `_draw_tile_handler` coloca tiles en `block["x"]-8, block["y"]-8` (rango 0-15 x, 0-19 y)
-- `Interpreter.get_tile_buffer()` devuelve referencia — hay que hacer `.duplicate()` para cachear
+- `heightData[y][x] > 0` = caminable, `== 0` = pared/bloqueado
+- Tile buffer: 16×20 grid, cada celda array de `{tile, depthX, depthY}`
 - Character sprites: 20×36 px por frame, 4 direcciones × 4 frames
+- **FloorPlan coordenadas**: piso 0 usa celdas 16×16, pisos 1-2 usan 32×32; imagen en offset (12,12)
+- **Overlay**: Se dibuja en `_grid_to_canvas(gx, gy, fl)` SIN offset (el offset es solo para la imagen)
