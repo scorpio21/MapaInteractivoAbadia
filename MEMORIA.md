@@ -18,20 +18,22 @@ Recrear el mapa isométrico de *La Abadía del Crimen* (1987) en Godot 4.7 con r
 - ✅ 3D eliminado (commit 9634594)
 - ✅ Assets reales descargados de ultrabolido/abadia: tiles_day.png (256 tiles), 9 sprites de personajes, scripts.abs, tiles.json, adso.json, monk.json, doors.json, objects.json
 - ✅ ScriptInterpreter parsea 113 scripts de scripts.abs correctamente
-- ✅ **FIX stack corruption**: stacks separados `call_stack` (para CALL) y `while_depth` (para WHILE/ENDWHILE), evitando mezcla de tipos int/String en el stack
-- ✅ 0 SCRIPT ERRORs (antes decenas)
-- ✅ 32,207 sprites generados en piso 0 (antes 11,504)
-- ✅ TileRenderer genera AtlasTextures desde tiles_day.png
-- ✅ Jugador con sprite Guillermo, Camera2D zoom 4×
-- ✅ UI con hora canónica (autoload Horario)
-- ✅ Commit 334c987 pushado a GitHub
+- ✅ **FIX stack corruption**: stacks separados `call_stack` (para CALL) y `while_depth` (para WHILE/ENDWHILE)
+- ✅ 0 SCRIPT ERRORs, 559 sprites por habitación
+- ✅ **REDESIGN: renderizado de UNA habitación a la vez** (como el juego original AbadiaBuilder.js)
+- ✅ Fondo teal 0x008080 (BACKGROUND_COLOR_DAY) como el original
+- ✅ SCREEN_OFFSET_X = 32 (centra la sala de 256px en viewport de 320px)
+- ✅ Habitación cacheada en interpreted_rooms para rendimiento
+- ✅ Transición de habitaciones al salir de los límites (0-15)
+- ✅ Commit 01f6386 pushado a GitHub
 
-### Activo / Con bugs visuales
-- ⚠️ **Posicionamiento de habitaciones**: se superponen y dejan gaps grises
-- ⚠️ **Patrón checkerboard teal/negro**: algunas habitaciones muestran tiles repetidos en cuadrícula
-- ⚠️ **Fondo gris** en lugar de negro
+### Activo
+- ⚠️ **Verificar visualmente** — necesito que el usuario compruebe que la habitación se ve correctamente (tiles, colores, fondo teal)
+- ⠿ **Jugador.tscn**: sprite scale=0.5 puede necesitar ajuste para verse proporcionado con tiles 4×
+- ⠿ **Camera2D zoom=4×** — verificar que muestra la habitación completa
 
 ### Pendiente
+- 🔲 Verificar que el jugador puede moverse entre habitaciones
 - 🔲 Monjes con IA y patrullas (AbadIA.gd, MonjeIA.gd existen pero no integrados)
 - 🔲 Sistema de cambio de pisos
 - 🔲 Zonas interactivas, puertas, objetos
@@ -39,24 +41,29 @@ Recrear el mapa isométrico de *La Abadía del Crimen* (1987) en Godot 4.7 con r
 ## Commits recientes
 | SHA | Mensaje |
 |-----|---------|
+| 01f6386 | Redesign: single-room rendering like original game |
 | 334c987 | Fix stack corruption in ScriptInterpreter + add real game assets |
+| 15867b0 | Add MEMORIA.md session progress file |
 | 9634594 | Eliminar versión 3D completa |
 
-## Siguientes pasos (mañana)
+## Siguientes pasos
 
-1. **Investigar referencia JS** — Leer la función `renderRoom` de ultrabolido/abadia para entender cómo posiciona tiles en pantalla (coords exactas de cada room en el grid 16×16)
-2. **Corregir posicionamiento** — Ajustar `MapaPisos._render_room()` para que cada habitación se coloque correctamente en su slot del grid sin superposición
-3. **Fondo negro** — Cambiar color de fondo del viewport a negro
-4. **Verificar visualmente** — Ejecutar y comparar con capturas del juego original
-5. **Monjes IA** — Integrar AbadIA y MonjeIA con el mapa renderizado
+1. **Verificar visual** — El usuario abre el juego y comprueba que la habitación se ve correctamente (tiles naranjas/teal, fondo teal, personaje visible)
+2. **Ajustar sprite del jugador** — Verificar proporción y posición del sprite de Guillermo con tiles a escala 4×
+3. **Transiciones de habitación** — Probar moverse entre habitaciones con flechas
+4. **Monjes IA** — Integrar AbadIA y MonjeIA con el mapa renderizado
+5. **Cambio de pisos** — Implementar escaleras entre plantas
 
 ## Gotchas conocidos
-- `floors.json` es Array (no Dictionary) de 3 pisos, cada uno con `room[16][16]`
+- **El juego original renderiza UNA habitación a la vez** — NO todas a la vez. `AbadiaBuilder.buildRoom(floor, rx, ry)` limpia y re-renderiza
+- Cada habitación se dibuja en posición FIJA: `(SCREEN_OFFSET_X + x*16, y*8)` — ocupa toda la pantalla
+- `SCREEN_OFFSET_X = 32` centra la sala de 256px en viewport de 320px
+- `BACKGROUND_COLOR_DAY = 0x008080` (teal), NO negro
+- Orientación de sala depende de posición en grid: `((rx & 1) << 1) | ((rx & 1) ^ (ry & 1))` — afecta posiciones de actores, NO de tiles
+- `floors.json` es Array de 3 pisos, `room[ry][rx]` da room_id
 - `rooms.json` es Array de 116 habitaciones, cada una con `blocks` y `heightData[16][16]`
-- JSON en Godot 4 retorna floats — hay que castear con `int()` antes de bit operations
 - `SCRIPT` naming: `script_id = "SCRIPT" + str(type >> 1)`
-- Tile buffer: 16×20 grid, cada celda es array de `{tile, depthX, depthY}`
+- Tile buffer: 16×20 grid (no 16×16), cada celda array de `{tile, depthX, depthY}`
 - `_draw_tile_handler` coloca tiles en `block["x"]-8, block["y"]-8` (rango 0-15 x, 0-19 y)
-- `SCREEN_OFFSET_X = 32` en el juego original (viewport 320×192, escalado 4×)
+- `Interpreter.get_tile_buffer()` devuelve referencia — hay que hacer `.duplicate()` para cachear
 - Character sprites: 20×36 px por frame, 4 direcciones × 4 frames
-- ScriptInterpreter tiene 3 stacks: `stack` (PUSH/POP de usuario + WHILE/ENDWHILE), `call_stack` (CALL retorno), `while_depth` (tracking de depth para ENDWHILE seguro)
