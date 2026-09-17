@@ -84,6 +84,13 @@ custom_minimum_size = Vector2(180, 0)
 size_flags_horizontal = 3
 placeholder_text = "0-115"
 
+[node name="LuzLabel" type="Label" parent="HSplit/RightPanel/Controls"]
+text = "Iluminación:"
+
+[node name="LightingSelect" type="OptionButton" parent="HSplit/RightPanel/Controls"]
+custom_minimum_size = Vector2(180, 0)
+size_flags_horizontal = 3
+
 [node name="ExtendedCheck" type="CheckBox" parent="HSplit/RightPanel/Controls"]
 custom_minimum_size = Vector2(0, 28)
 text = "Área extendida"

@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.7")
 [autoload]
 
 Horario="*res://scripts/Reloj.gd"
+GameData="*res://scripts/GameData.gd"
 
 [display]
 

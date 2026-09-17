@@ -15,11 +15,13 @@ var extended_check: CheckBox
 var border_check: CheckBox
 var progressive_check: CheckBox
 var music_check: CheckBox
+var lighting_select: OptionButton
 var audio: AudioStreamPlayer
 
 const FLOOR_NAMES = ["Iglesia", "Scriptorium", "Biblioteca"]
 
 const TILESETS = [
+	{"name": "Original", "file": "res://assets/tiles.png"},
 	{"name": "Amstrad CPC", "file": "res://assets/tiles_cpc.png"},
 	{"name": "Amstrad CPC noche", "file": "res://assets/tiles_cpc_noche.png"},
 	{"name": "MSX", "file": "res://assets/tiles_msx.png"},
@@ -51,6 +53,7 @@ func _ready() -> void:
 	border_check = $HSplit/RightPanel/Controls/BorderCheck
 	progressive_check = $HSplit/RightPanel/Controls/ProgressiveCheck
 	music_check = $HSplit/RightPanel/Controls/MusicCheck
+	lighting_select = $HSplit/RightPanel/Controls/LightingSelect
 	audio = $Audio
 
 	floor_select.clear()
@@ -63,6 +66,11 @@ func _ready() -> void:
 		tileset_select.add_item(ts["name"])
 	tileset_select.selected = 0
 
+	lighting_select.clear()
+	for name in GameData.LIGHTING_NAMES:
+		lighting_select.add_item(name)
+	lighting_select.selected = 1
+
 	map_select.clear()
 	for m in MAPS:
 		map_select.add_item(m["name"])
@@ -73,6 +81,7 @@ func _ready() -> void:
 	floor_select.item_selected.connect(_on_floor_selected)
 	tileset_select.item_selected.connect(_on_tileset_selected)
 	map_select.item_selected.connect(_on_map_selected)
+	lighting_select.item_selected.connect(_on_lighting_selected)
 	room_input.text_submitted.connect(_on_room_submitted)
 	slider.value_changed.connect(_on_slider_changed)
 	music_check.toggled.connect(_on_music_toggled)
@@ -152,6 +161,16 @@ func _on_border_toggled(pressed: bool) -> void:
 
 func _on_progressive_toggled(pressed: bool) -> void:
 	pass
+
+func _on_lighting_selected(index: int) -> void:
+	var colors = [
+		GameData.LIGHTING_PITCH_BLACK, GameData.LIGHTING_DAY,
+		GameData.LIGHTING_WARM_DAY, GameData.LIGHTING_DUSK,
+		GameData.LIGHTING_DEEP_NIGHT, GameData.LIGHTING_INDOOR,
+		GameData.LIGHTING_CANDLE, GameData.LIGHTING_TORCH
+	]
+	if index >= 0 and index < colors.size():
+		room_renderer.set_lighting(colors[index])
 
 func _position_player() -> void:
 	player.position = Vector2(8 * 16, 8 * 8)

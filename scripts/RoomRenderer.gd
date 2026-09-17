@@ -106,9 +106,14 @@ func setup(interp, floors: Array, rooms: Array) -> void:
 	_load_tileset()
 
 func _load_tileset() -> void:
-	tile_atlas = load("res://assets/tiles_day.png")
+	if GameData.all_room_data.size() > 0:
+		tile_atlas = load("res://assets/tiles.png")
+		if tile_atlas == null:
+			tile_atlas = load("res://assets/tiles_day.png")
+	else:
+		tile_atlas = load("res://assets/tiles_day.png")
 	if tile_atlas == null:
-		print("ERROR: No se pudo cargar tiles_day.png")
+		print("ERROR: No se pudo cargar tileset")
 		return
 	_load_tile_frames()
 
@@ -122,13 +127,7 @@ func load_tileset(path: String) -> void:
 	_load_tile_frames()
 	if current_room_x >= 0 and current_room_y >= 0:
 		_clear_sprites()
-		var room_grid = floors_data[current_floor].get("room", [])
-		if current_room_y < room_grid.size() and current_room_x < room_grid[current_room_y].size():
-			var room_id = room_grid[current_room_y][current_room_x]
-			if room_id >= 1 and room_id <= rooms_data.size():
-				current_blocks = rooms_data[room_id - 1].get("blocks", [])
-				var buffer = _get_room_buffer(room_id)
-				_render_buffer(buffer)
+		_build_room_binary(current_floor, current_room_x, current_room_y)
 	print("RoomRenderer: tileset cambiado a ", path)
 
 func _load_tile_frames() -> void:
@@ -154,6 +153,34 @@ func build_room(fl: int, rx: int, ry: int, force: bool = false) -> void:
 	current_room_y = ry
 	_clear_sprites()
 
+	if GameData.all_room_data.size() > 0:
+		_build_room_binary(fl, rx, ry)
+	else:
+		_build_room_script(fl, rx, ry)
+
+func _build_room_binary(fl: int, rx: int, ry: int) -> void:
+	var room_index: int = GameData.get_room_index_from_floor(fl, rx, ry)
+	_render_binary_room(room_index)
+	current_height_data = []
+	current_blocks = []
+	_count_binary_blocks(room_index)
+	print("Room binary index %d at (%d,%d): floor %d (%d tiles)" % [room_index, rx, ry, fl, current_blocks.size()])
+
+func _count_binary_blocks(room_index: int) -> void:
+	var grid_w: int = GameData.ROOM_GRID_W
+	var grid_h: int = GameData.ROOM_GRID_H
+	var count: int = 0
+	for y in range(grid_h):
+		for x in range(grid_w):
+			for layer in range(3):
+				var raw: int = GameData.get_tile_from_map(x, y, layer, room_index)
+				if raw > 0:
+					count += 1
+	current_blocks.resize(count)
+	for i in range(count):
+		current_blocks[i] = {}
+
+func _build_room_script(fl: int, rx: int, ry: int) -> void:
 	if fl >= floors_data.size():
 		return
 	var room_grid = floors_data[fl].get("room", [])
@@ -168,6 +195,33 @@ func build_room(fl: int, rx: int, ry: int, force: bool = false) -> void:
 	_render_buffer(buffer)
 	current_height_data = rooms_data[room_id - 1].get("heightData", [])
 	print("Room %d at (%d,%d): rendered (%d blocks)" % [room_id, rx, ry, current_blocks.size()])
+
+func _render_binary_room(room_index: int) -> void:
+	var grid_w: int = GameData.ROOM_GRID_W
+	var grid_h: int = GameData.ROOM_GRID_H
+	for y in range(grid_h):
+		for x in range(grid_w):
+			for layer in range(3):
+				var raw: int = GameData.get_tile_from_map(x, y, layer, room_index)
+				if raw > 0:
+					_add_binary_sprite(x, y, raw)
+
+func _add_binary_sprite(x: int, y: int, raw_index: int) -> void:
+	var page: int = raw_index / 256
+	var tile_x: int = raw_index & 0xF0
+	var tile_y: int = ((raw_index & 0xF) << 3) + page * 128
+	var atlas = AtlasTexture.new()
+	atlas.atlas = tile_atlas
+	atlas.region = Rect2(tile_x, tile_y, 16, 8)
+	var sprite = Sprite2D.new()
+	sprite.texture = atlas
+	sprite.centered = false
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.position = Vector2(x * TILE_W, y * TILE_H)
+	sprite.z_index = x + y - 16
+	sprite.modulate = GameData.current_lighting
+	add_child(sprite)
+	current_sprites.append(sprite)
 
 func _get_room_buffer(room_id: int) -> Array:
 	if room_cache.has(room_id):
@@ -206,6 +260,7 @@ func _add_sprite(x: int, y: int, tile_data: Dictionary) -> void:
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	sprite.position = Vector2(x * TILE_W, y * TILE_H)
 	sprite.z_index = tile_data["depthX"] + tile_data["depthY"] - 16
+	sprite.modulate = GameData.current_lighting
 	add_child(sprite)
 	current_sprites.append(sprite)
 
@@ -236,6 +291,13 @@ func build_room_partial(fl: int, rx: int, ry: int, max_elements: int) -> void:
 	current_room_x = rx
 	current_room_y = ry
 
+	if GameData.all_room_data.size() > 0:
+		var room_index: int = GameData.get_room_index_from_floor(fl, rx, ry)
+		_clear_sprites()
+		_render_binary_room(room_index)
+		print("Room binary index %d at (%d,%d): partial render (binary)" % [room_index, rx, ry])
+		return
+
 	if fl >= floors_data.size():
 		return
 	var room_grid = floors_data[fl].get("room", [])
@@ -252,6 +314,12 @@ func build_room_partial(fl: int, rx: int, ry: int, max_elements: int) -> void:
 
 func get_block_count() -> int:
 	return current_blocks.size()
+
+func set_lighting(color: Color) -> void:
+	GameData.current_lighting = color
+	for s in current_sprites:
+		if is_instance_valid(s):
+			s.modulate = color
 
 func _clear_sprites() -> void:
 	for s in current_sprites:
