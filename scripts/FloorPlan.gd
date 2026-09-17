@@ -163,7 +163,7 @@ func _draw() -> void:
 			var cs = 16.0
 			if current_floor != 0:
 				cs = 32.0
-			var rect = Rect2(canvas_pos, Vector2(cs, cs))
+			var rect = Rect2(canvas_pos + OFFSET, Vector2(cs, cs))
 			draw_rect(rect, OVERLAY_COLOR)
 			draw_rect(rect, BORDER_SELECTED, false, 1.5)
 
