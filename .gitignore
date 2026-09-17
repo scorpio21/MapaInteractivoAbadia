@@ -9,3 +9,5 @@
 .mono/
 data_*/
 mono_crash.*.jsonscreenshot*.png
+project.godot~*
+*.TMP
