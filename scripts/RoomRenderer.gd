@@ -23,17 +23,37 @@ var show_border: bool = true
 var extended_view: bool = false
 var grid_w: int = 16
 var grid_h: int = 20
+var border_node: Line2D = null
 
 func _init() -> void:
 	pass
 
-func _draw() -> void:
+func _ensure_border() -> void:
+	if border_node == null or not is_instance_valid(border_node):
+		border_node = Line2D.new()
+		border_node.width = 2.0
+		border_node.default_color = Color(1, 1, 1, 0.8)
+		border_node.z_index = 9999
+		add_child(border_node)
+	_update_border()
+
+func _update_border() -> void:
+	if border_node == null or not is_instance_valid(border_node):
+		return
+	border_node.clear_points()
 	if show_border and extended_view:
 		var rx: float = 8 * TILE_W
 		var ry: float = 8 * TILE_H
 		var rw: float = 16 * TILE_W
 		var rh: float = 20 * TILE_H
-		draw_rect(Rect2(rx, ry, rw, rh), Color(1, 1, 1, 0.8), false, 2.0)
+		border_node.add_point(Vector2(rx, ry))
+		border_node.add_point(Vector2(rx + rw, ry))
+		border_node.add_point(Vector2(rx + rw, ry + rh))
+		border_node.add_point(Vector2(rx, ry + rh))
+		border_node.add_point(Vector2(rx, ry))
+		border_node.visible = true
+	else:
+		border_node.visible = false
 
 func _ready() -> void:
 	var ScriptInterpreterGD = preload("res://scripts/ScriptInterpreter.gd")
@@ -184,6 +204,7 @@ func build_room(fl: int, rx: int, ry: int, force: bool = false) -> void:
 		_build_room_binary(fl, rx, ry)
 	else:
 		_build_room_script(fl, rx, ry)
+	_ensure_border()
 
 func _build_room_binary(fl: int, rx: int, ry: int) -> void:
 	var room_index: int = GameData.get_room_index_from_floor(fl, rx, ry)
@@ -362,7 +383,7 @@ func set_extended(extended: bool) -> void:
 	else:
 		grid_w = 16
 		grid_h = 20
-	queue_redraw()
+	_update_border()
 
 func _clear_sprites() -> void:
 	for s in current_sprites:

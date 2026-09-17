@@ -170,7 +170,7 @@ func _rebuild_current_room() -> void:
 
 func _on_border_toggled(pressed: bool) -> void:
 	room_renderer.show_border = pressed
-	room_renderer.queue_redraw()
+	room_renderer._update_border()
 
 func _on_progressive_toggled(pressed: bool) -> void:
 	if pressed:
