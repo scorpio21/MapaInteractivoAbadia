@@ -76,6 +76,9 @@ func _ready() -> void:
 	room_input.text_submitted.connect(_on_room_submitted)
 	slider.value_changed.connect(_on_slider_changed)
 	music_check.toggled.connect(_on_music_toggled)
+	extended_check.toggled.connect(_on_extended_toggled)
+	border_check.toggled.connect(_on_border_toggled)
+	progressive_check.toggled.connect(_on_progressive_toggled)
 
 	_update_ui()
 
@@ -93,10 +96,30 @@ func _on_floor_selected(index: int) -> void:
 	_update_ui()
 
 func _on_tileset_selected(index: int) -> void:
-	pass
+	if index < 0 or index >= TILESETS.size():
+		return
+	room_renderer.load_tileset(TILESETS[index]["file"])
 
 func _on_map_selected(index: int) -> void:
-	pass
+	if index < 0 or index >= MAPS.size():
+		return
+	var map_file = FileAccess.open(MAPS[index]["file"], FileAccess.READ)
+	if map_file:
+		var text = map_file.get_as_text()
+		map_file.close()
+		room_renderer.room_cache.clear()
+		room_renderer.interpreter.parse_scripts(text)
+		room_renderer.current_room_x = -1
+		room_renderer.current_room_y = -1
+		var fl = floor_select.selected
+		var room_grid = room_renderer.floors_data[fl].get("room", [])
+		for ry in range(room_grid.size()):
+			for rx in range(room_grid[ry].size()):
+				if room_grid[ry][rx] > 0:
+					room_renderer.build_room(fl, rx, ry, true)
+					_position_player()
+					_update_ui()
+					return
 
 func _on_room_submitted(text: String) -> void:
 	var room_num = text.to_int()
@@ -120,6 +143,15 @@ func _on_music_toggled(pressed: bool) -> void:
 		audio.play()
 	else:
 		audio.stop()
+
+func _on_extended_toggled(pressed: bool) -> void:
+	pass
+
+func _on_border_toggled(pressed: bool) -> void:
+	pass
+
+func _on_progressive_toggled(pressed: bool) -> void:
+	pass
 
 func _position_player() -> void:
 	player.position = Vector2(8 * 16, 8 * 8)

@@ -59,14 +59,21 @@ func _ready() -> void:
 
 	_position_player_at_room_center()
 
-	await get_tree().process_frame
+func _process(_delta: float) -> void:
 	_update_scale()
+
+var _last_scale := Vector2.ZERO
 
 func _update_scale() -> void:
 	var vp = get_viewport()
 	if vp == null:
 		return
 	var vp_size = vp.get_visible_rect().size
+	if vp_size.x <= 0 or vp_size.y <= 0:
+		return
+	if vp_size == _last_scale:
+		return
+	_last_scale = vp_size
 	var base_size = Vector2(BUFFER_W * TILE_W, BUFFER_H * TILE_H)
 	var sx = vp_size.x / base_size.x
 	var sy = vp_size.y / base_size.y
@@ -103,6 +110,29 @@ func _load_tileset() -> void:
 	if tile_atlas == null:
 		print("ERROR: No se pudo cargar tiles_day.png")
 		return
+	_load_tile_frames()
+
+func load_tileset(path: String) -> void:
+	var tex = load(path)
+	if tex == null:
+		print("ERROR: No se pudo cargar ", path)
+		return
+	tile_atlas = tex
+	room_cache.clear()
+	_load_tile_frames()
+	if current_room_x >= 0 and current_room_y >= 0:
+		_clear_sprites()
+		var room_grid = floors_data[current_floor].get("room", [])
+		if current_room_y < room_grid.size() and current_room_x < room_grid[current_room_y].size():
+			var room_id = room_grid[current_room_y][current_room_x]
+			if room_id >= 1 and room_id <= rooms_data.size():
+				current_blocks = rooms_data[room_id - 1].get("blocks", [])
+				var buffer = _get_room_buffer(room_id)
+				_render_buffer(buffer)
+	print("RoomRenderer: tileset cambiado a ", path)
+
+func _load_tile_frames() -> void:
+	tile_frames.clear()
 	var tile_file = FileAccess.open("res://data/tiles.json", FileAccess.READ)
 	if tile_file:
 		var json = JSON.new()
@@ -116,8 +146,8 @@ func _load_tileset() -> void:
 		tile_file.close()
 		print("RoomRenderer: ", tile_frames.size(), " tiles cargados")
 
-func build_room(fl: int, rx: int, ry: int) -> void:
-	if fl == current_floor and rx == current_room_x and ry == current_room_y:
+func build_room(fl: int, rx: int, ry: int, force: bool = false) -> void:
+	if not force and fl == current_floor and rx == current_room_x and ry == current_room_y:
 		return
 	current_floor = fl
 	current_room_x = rx
