@@ -8,6 +8,9 @@ var script_id: String = ""
 var line_idx: int = 0
 var flip_x: bool = false
 var tiles: Array = []
+var extended_view: bool = false
+var buffer_w: int = 16
+var buffer_h: int = 20
 
 var stack: Array = []
 var call_stack: Array = []
@@ -253,11 +256,17 @@ func _draw_tile_handler(tile_ref: String) -> void:
 	else:
 		tile_num = int(tile_ref) + 1
 
-	var p_x = int(block["x"]) - 8
-	var p_y = int(block["y"]) - 8
-	if p_x < 0 or p_x >= 16:
+	var p_x: int
+	var p_y: int
+	if extended_view:
+		p_x = int(block["x"])
+		p_y = int(block["y"])
+	else:
+		p_x = int(block["x"]) - 8
+		p_y = int(block["y"]) - 8
+	if p_x < 0 or p_x >= buffer_w:
 		return
-	if p_y < 0 or p_y >= 20:
+	if p_y < 0 or p_y >= buffer_h:
 		return
 
 	var dx = int(block["depthx"])
@@ -334,11 +343,20 @@ func _apply_op(a: float, op: String, b_str: String) -> float:
 
 func _clear_tile_buffer() -> void:
 	tile_buffer.clear()
-	for x in range(16):
+	for x in range(buffer_w):
 		var col = []
-		for y in range(20):
+		for y in range(buffer_h):
 			col.append([])
 		tile_buffer.append(col)
+
+func set_extended(extended: bool) -> void:
+	extended_view = extended
+	if extended:
+		buffer_w = 32
+		buffer_h = 32
+	else:
+		buffer_w = 16
+		buffer_h = 20
 
 func get_tile_buffer() -> Array:
 	return tile_buffer

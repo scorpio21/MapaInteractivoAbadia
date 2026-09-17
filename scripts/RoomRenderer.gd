@@ -370,6 +370,7 @@ func set_extended(extended: bool) -> void:
 	else:
 		grid_w = 16
 		grid_h = 20
+	interpreter.set_extended(extended)
 	_update_border()
 
 func _clear_sprites() -> void:
