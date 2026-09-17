@@ -28,32 +28,19 @@ var border_node: Line2D = null
 func _init() -> void:
 	pass
 
-func _ensure_border() -> void:
-	if border_node == null or not is_instance_valid(border_node):
-		border_node = Line2D.new()
-		border_node.width = 2.0
-		border_node.default_color = Color(1, 1, 1, 0.8)
-		border_node.z_index = 9999
-		add_child(border_node)
-	_update_border()
-
-func _update_border() -> void:
-	if border_node == null or not is_instance_valid(border_node):
-		return
-	border_node.clear_points()
+func _draw() -> void:
 	if show_border and extended_view:
 		var rx: float = 8 * TILE_W
 		var ry: float = 8 * TILE_H
 		var rw: float = 16 * TILE_W
 		var rh: float = 20 * TILE_H
-		border_node.add_point(Vector2(rx, ry))
-		border_node.add_point(Vector2(rx + rw, ry))
-		border_node.add_point(Vector2(rx + rw, ry + rh))
-		border_node.add_point(Vector2(rx, ry + rh))
-		border_node.add_point(Vector2(rx, ry))
-		border_node.visible = true
-	else:
-		border_node.visible = false
+		draw_rect(Rect2(rx, ry, rw, rh), Color(1, 1, 1, 0.8), false, 2.0)
+
+func _ensure_border() -> void:
+	pass
+
+func _update_border() -> void:
+	queue_redraw()
 
 func _ready() -> void:
 	var ScriptInterpreterGD = preload("res://scripts/ScriptInterpreter.gd")
@@ -159,7 +146,7 @@ func load_tileset(path: String) -> void:
 		return
 	room_cache.clear()
 
-	if path == "res://assets/tiles.png" and GameData.all_room_data.size() > 0:
+	if path == "res://assets/tiles.png" and GameData.all_room_data.size() > 0 and not extended_view:
 		tile_atlas = tex
 		_load_tile_frames()
 		use_binary = true
@@ -172,7 +159,7 @@ func load_tileset(path: String) -> void:
 
 	if current_room_x >= 0 and current_room_y >= 0:
 		_clear_sprites()
-		if use_binary:
+		if use_binary and not extended_view:
 			_build_room_binary(current_floor, current_room_x, current_room_y)
 		else:
 			_build_room_script(current_floor, current_room_x, current_room_y)
@@ -200,7 +187,7 @@ func build_room(fl: int, rx: int, ry: int, force: bool = false) -> void:
 	current_room_y = ry
 	_clear_sprites()
 
-	if use_binary and GameData.all_room_data.size() > 0:
+	if use_binary and not extended_view and GameData.all_room_data.size() > 0:
 		_build_room_binary(fl, rx, ry)
 	else:
 		_build_room_script(fl, rx, ry)
@@ -345,7 +332,7 @@ func build_room_partial(fl: int, rx: int, ry: int, max_elements: int) -> void:
 	current_room_x = rx
 	current_room_y = ry
 
-	if use_binary and GameData.all_room_data.size() > 0:
+	if use_binary and not extended_view and GameData.all_room_data.size() > 0:
 		var room_index: int = GameData.get_room_index_from_floor(fl, rx, ry)
 		_clear_sprites()
 		_render_binary_room(room_index)
