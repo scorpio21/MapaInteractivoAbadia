@@ -59,6 +59,22 @@ func _ready() -> void:
 
 	_position_player_at_room_center()
 
+	await get_tree().process_frame
+	_update_scale()
+
+func _update_scale() -> void:
+	var vp = get_viewport()
+	if vp == null:
+		return
+	var vp_size = vp.get_visible_rect().size
+	var base_size = Vector2(BUFFER_W * TILE_W, BUFFER_H * TILE_H)
+	var sx = vp_size.x / base_size.x
+	var sy = vp_size.y / base_size.y
+	var s = min(sx, sy)
+	var offset_x = (vp_size.x - base_size.x * s) / 2.0
+	var offset_y = (vp_size.y - base_size.y * s) / 2.0
+	vp.canvas_transform = Transform2D(Vector2(s, 0), Vector2(0, s), Vector2(offset_x, offset_y))
+
 func _find_initial_room() -> Array:
 	if current_floor >= floors_data.size():
 		return []
