@@ -150,8 +150,8 @@ func _on_slider_changed(value: float) -> void:
 
 func _on_music_toggled(pressed: bool) -> void:
 	if pressed:
-		if audio.stream and audio.stream is AudioStreamOGGVorbis:
-			audio.stream.loop_mode = AudioStream.LOOP_FORWARD
+		if audio.stream:
+			audio.stream.loop = true
 		audio.play()
 	else:
 		audio.stop()
