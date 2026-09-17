@@ -109,10 +109,12 @@ func setup(interp, floors: Array, rooms: Array) -> void:
 func _load_tileset() -> void:
 	if GameData.all_room_data.size() > 0:
 		tile_atlas = load("res://assets/tiles.png")
-		if tile_atlas == null:
+		use_binary = (tile_atlas != null)
+		if not use_binary:
 			tile_atlas = load("res://assets/tiles_day.png")
 	else:
 		tile_atlas = load("res://assets/tiles_day.png")
+		use_binary = false
 	if tile_atlas == null:
 		print("ERROR: No se pudo cargar tileset")
 		return
@@ -123,17 +125,25 @@ func load_tileset(path: String) -> void:
 	if tex == null:
 		print("ERROR: No se pudo cargar ", path)
 		return
-	tile_atlas = tex
 	room_cache.clear()
-	_load_tile_frames()
-	use_binary = (path == "res://assets/tiles.png" and GameData.all_room_data.size() > 0)
+
+	if path == "res://assets/tiles.png" and GameData.all_room_data.size() > 0:
+		tile_atlas = tex
+		_load_tile_frames()
+		use_binary = true
+		print("RoomRenderer: tileset Original (binary)")
+	else:
+		tile_atlas = load("res://assets/tiles_day.png")
+		_load_tile_frames()
+		use_binary = false
+		print("RoomRenderer: tileset ", path, " (scripts, usando tiles_day.png)")
+
 	if current_room_x >= 0 and current_room_y >= 0:
 		_clear_sprites()
 		if use_binary:
 			_build_room_binary(current_floor, current_room_x, current_room_y)
 		else:
 			_build_room_script(current_floor, current_room_x, current_room_y)
-	print("RoomRenderer: tileset cambiado a ", path, " (binary=", use_binary, ")")
 
 func _load_tile_frames() -> void:
 	tile_frames.clear()
