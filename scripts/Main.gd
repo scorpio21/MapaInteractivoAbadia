@@ -32,9 +32,7 @@ const TILESETS = [
 ]
 
 const MAPS = [
-	{"name": "Original CPC", "file": "res://assets/3d_cpc.map"},
-	{"name": "MSX", "file": "res://assets/3d.map"},
-	{"name": "Reducido (cinta CPC)", "file": "res://assets/3d_cpc_cinta.map"}
+	{"name": "Original CPC (scripts.abs)", "file": "res://data/scripts.abs"}
 ]
 
 func _ready() -> void:

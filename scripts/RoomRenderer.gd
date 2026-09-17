@@ -18,6 +18,7 @@ var current_sprites: Array = []
 var room_cache: Dictionary = {}
 var current_height_data: Array = []
 var current_blocks: Array = []
+var use_binary: bool = true
 
 func _init() -> void:
 	pass
@@ -125,10 +126,14 @@ func load_tileset(path: String) -> void:
 	tile_atlas = tex
 	room_cache.clear()
 	_load_tile_frames()
+	use_binary = (path == "res://assets/tiles.png" and GameData.all_room_data.size() > 0)
 	if current_room_x >= 0 and current_room_y >= 0:
 		_clear_sprites()
-		_build_room_binary(current_floor, current_room_x, current_room_y)
-	print("RoomRenderer: tileset cambiado a ", path)
+		if use_binary:
+			_build_room_binary(current_floor, current_room_x, current_room_y)
+		else:
+			_build_room_script(current_floor, current_room_x, current_room_y)
+	print("RoomRenderer: tileset cambiado a ", path, " (binary=", use_binary, ")")
 
 func _load_tile_frames() -> void:
 	tile_frames.clear()
@@ -153,7 +158,7 @@ func build_room(fl: int, rx: int, ry: int, force: bool = false) -> void:
 	current_room_y = ry
 	_clear_sprites()
 
-	if GameData.all_room_data.size() > 0:
+	if use_binary and GameData.all_room_data.size() > 0:
 		_build_room_binary(fl, rx, ry)
 	else:
 		_build_room_script(fl, rx, ry)
@@ -291,7 +296,7 @@ func build_room_partial(fl: int, rx: int, ry: int, max_elements: int) -> void:
 	current_room_x = rx
 	current_room_y = ry
 
-	if GameData.all_room_data.size() > 0:
+	if use_binary and GameData.all_room_data.size() > 0:
 		var room_index: int = GameData.get_room_index_from_floor(fl, rx, ry)
 		_clear_sprites()
 		_render_binary_room(room_index)
