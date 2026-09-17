@@ -17,6 +17,9 @@ var progressive_check: CheckBox
 var music_check: CheckBox
 var lighting_select: OptionButton
 var audio: AudioStreamPlayer
+var progressive_timer: Timer
+var is_progressive_animating: bool = false
+var progressive_max: int = 0
 
 const FLOOR_NAMES = ["Iglesia", "Scriptorium", "Biblioteca"]
 
@@ -147,18 +150,63 @@ func _on_slider_changed(value: float) -> void:
 
 func _on_music_toggled(pressed: bool) -> void:
 	if pressed:
+		if audio.stream and audio.stream is AudioStreamOGGVorbis:
+			audio.stream.loop_mode = AudioStream.LOOP_FORWARD
 		audio.play()
 	else:
 		audio.stop()
 
 func _on_extended_toggled(pressed: bool) -> void:
-	pass
+	room_renderer.set_extended(pressed)
+	_rebuild_current_room()
+
+func _rebuild_current_room() -> void:
+	var fl = floor_select.selected
+	var rx = room_renderer.current_room_x
+	var ry = room_renderer.current_room_y
+	if rx >= 0 and ry >= 0:
+		room_renderer.build_room(fl, rx, ry, true)
+		_update_ui()
 
 func _on_border_toggled(pressed: bool) -> void:
-	pass
+	room_renderer.show_border = pressed
+	room_renderer.queue_redraw()
 
 func _on_progressive_toggled(pressed: bool) -> void:
-	pass
+	if pressed:
+		slider.value = 0
+		slider_value_label.text = "0/%d" % [int(slider.max_value)]
+		_on_slider_changed(0.0)
+		_start_progressive_animation()
+	else:
+		_stop_progressive_animation()
+
+func _start_progressive_animation() -> void:
+	if is_progressive_animating:
+		return
+	is_progressive_animating = true
+	progressive_max = int(slider.max_value)
+	progressive_timer = Timer.new()
+	progressive_timer.wait_time = 0.1
+	progressive_timer.one_shot = false
+	progressive_timer.timeout.connect(_on_progressive_tick)
+	add_child(progressive_timer)
+	progressive_timer.start()
+
+func _stop_progressive_animation() -> void:
+	is_progressive_animating = false
+	if progressive_timer:
+		progressive_timer.stop()
+		progressive_timer.queue_free()
+		progressive_timer = null
+
+func _on_progressive_tick() -> void:
+	var current = int(slider.value) + 1
+	if current > progressive_max:
+		_stop_progressive_animation()
+		return
+	slider.value = current
+	_on_slider_changed(float(current))
 
 func _on_lighting_selected(index: int) -> void:
 	var colors = [

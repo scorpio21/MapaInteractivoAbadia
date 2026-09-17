@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/RoomRenderer.gd" id="1_rr"]
 [ext_resource type="Script" path="res://scripts/UI.gd" id="2_ui"]
 [ext_resource type="PackedScene" path="res://scenes/Jugador.tscn" id="3_player"]
 [ext_resource type="Script" path="res://scripts/Main.gd" id="4_main"]
 [ext_resource type="Script" path="res://scripts/FloorPlan.gd" id="5_fp"]
+[ext_resource type="AudioStream" path="res://assets/sound/bgm/original.ogg" id="6_bgm"]
 
 [node name="Main" type="VBoxContainer"]
 script = ExtResource("4_main")
@@ -161,3 +162,4 @@ layer = 10
 visible = false
 
 [node name="Audio" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_bgm")

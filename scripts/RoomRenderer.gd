@@ -19,9 +19,21 @@ var room_cache: Dictionary = {}
 var current_height_data: Array = []
 var current_blocks: Array = []
 var use_binary: bool = true
+var show_border: bool = true
+var extended_view: bool = false
+var grid_w: int = 16
+var grid_h: int = 20
 
 func _init() -> void:
 	pass
+
+func _draw() -> void:
+	if show_border and extended_view:
+		var rx: float = 8 * TILE_W
+		var ry: float = 8 * TILE_H
+		var rw: float = 16 * TILE_W
+		var rh: float = 20 * TILE_H
+		draw_rect(Rect2(rx, ry, rw, rh), Color(1, 1, 1, 0.8), false, 2.0)
 
 func _ready() -> void:
 	var ScriptInterpreterGD = preload("res://scripts/ScriptInterpreter.gd")
@@ -75,7 +87,7 @@ func _update_scale() -> void:
 	if vp_size == _last_scale:
 		return
 	_last_scale = vp_size
-	var base_size = Vector2(BUFFER_W * TILE_W, BUFFER_H * TILE_H)
+	var base_size = Vector2(grid_w * TILE_W, grid_h * TILE_H)
 	var sx = vp_size.x / base_size.x
 	var sy = vp_size.y / base_size.y
 	var s = min(sx, sy)
@@ -182,11 +194,9 @@ func _build_room_binary(fl: int, rx: int, ry: int) -> void:
 	print("Room binary index %d at (%d,%d): floor %d (%d tiles)" % [room_index, rx, ry, fl, current_blocks.size()])
 
 func _count_binary_blocks(room_index: int) -> void:
-	var grid_w: int = GameData.ROOM_GRID_W
-	var grid_h: int = GameData.ROOM_GRID_H
 	var count: int = 0
-	for y in range(grid_h):
-		for x in range(grid_w):
+	for y in range(GameData.ROOM_GRID_H):
+		for x in range(GameData.ROOM_GRID_W):
 			for layer in range(3):
 				var raw: int = GameData.get_tile_from_map(x, y, layer, room_index)
 				if raw > 0:
@@ -212,10 +222,8 @@ func _build_room_script(fl: int, rx: int, ry: int) -> void:
 	print("Room %d at (%d,%d): rendered (%d blocks)" % [room_id, rx, ry, current_blocks.size()])
 
 func _render_binary_room(room_index: int) -> void:
-	var grid_w: int = GameData.ROOM_GRID_W
-	var grid_h: int = GameData.ROOM_GRID_H
-	for y in range(grid_h):
-		for x in range(grid_w):
+	for y in range(GameData.ROOM_GRID_H):
+		for x in range(GameData.ROOM_GRID_W):
 			for layer in range(3):
 				var raw: int = GameData.get_tile_from_map(x, y, layer, room_index)
 				if raw > 0:
@@ -232,7 +240,12 @@ func _add_binary_sprite(x: int, y: int, raw_index: int) -> void:
 	sprite.texture = atlas
 	sprite.centered = false
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	sprite.position = Vector2(x * TILE_W, y * TILE_H)
+	var draw_x: int = x
+	var draw_y: int = y
+	if not extended_view:
+		draw_x = x - 8
+		draw_y = y - 8
+	sprite.position = Vector2(draw_x * TILE_W, draw_y * TILE_H)
 	sprite.z_index = x + y - 16
 	sprite.modulate = GameData.current_lighting
 	add_child(sprite)
@@ -257,8 +270,8 @@ func _get_room_buffer(room_id: int) -> Array:
 	return copy
 
 func _render_buffer(buffer: Array) -> void:
-	for x in range(BUFFER_W):
-		for y in range(BUFFER_H):
+	for x in range(buffer.size()):
+		for y in range(buffer[x].size()):
 			for tile_data in buffer[x][y]:
 				_add_sprite(x, y, tile_data)
 
@@ -273,7 +286,12 @@ func _add_sprite(x: int, y: int, tile_data: Dictionary) -> void:
 	sprite.texture = atlas
 	sprite.centered = false
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	sprite.position = Vector2(x * TILE_W, y * TILE_H)
+	var draw_x: int = x
+	var draw_y: int = y
+	if not extended_view:
+		draw_x = x - 8
+		draw_y = y - 8
+	sprite.position = Vector2(draw_x * TILE_W, draw_y * TILE_H)
 	sprite.z_index = tile_data["depthX"] + tile_data["depthY"] - 16
 	sprite.modulate = GameData.current_lighting
 	add_child(sprite)
@@ -335,6 +353,16 @@ func set_lighting(color: Color) -> void:
 	for s in current_sprites:
 		if is_instance_valid(s):
 			s.modulate = color
+
+func set_extended(extended: bool) -> void:
+	extended_view = extended
+	if extended:
+		grid_w = 32
+		grid_h = 32
+	else:
+		grid_w = 16
+		grid_h = 20
+	queue_redraw()
 
 func _clear_sprites() -> void:
 	for s in current_sprites:
