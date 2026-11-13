@@ -1,3 +1,4 @@
+class_name GameData
 extends Node
 
 const TILE_MAP_SIZE: int = 672
