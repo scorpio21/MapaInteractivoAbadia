@@ -11,13 +11,14 @@ config_version=5
 [application]
 
 config/name="MapainteractivoAbadia"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/MainNew.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
 GameData="*res://scripts/GameData.gd"
+Horario="*res://scripts/Reloj.gd"
 
 [display]
 
