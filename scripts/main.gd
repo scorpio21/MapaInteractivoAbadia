@@ -1,371 +1,248 @@
-extends Node2D
+extends VBoxContainer
 
-# ============================================================
-# MAPA INTERACTIVO - LA ABADÍA DEL CRIMEN
-# Layout:
-#   - Render lógico de la Abadía: 320x208
-#   - Panel derecho fijo para el mapa
-#   - Escalado automático sin cortar el render
-#   - El minimapa nunca invade el área del render
-# ============================================================
+var floor_plan: FloorPlan
+var room_renderer: RoomRenderer
+var floor_select: OptionButton
+var tileset_select: OptionButton
+var map_select: OptionButton
+var room_input: LineEdit
+var info_label: Label
+var slider: HSlider
+var slider_value_label: Label
+var status_label: Label
+var player: CharacterBody2D
+var extended_check: CheckBox
+var border_check: CheckBox
+var progressive_check: CheckBox
+var music_check: CheckBox
+var lighting_select: OptionButton
+var audio: AudioStreamPlayer
+var progressive_timer: Timer
+var is_progressive_animating: bool = false
+var progressive_max: int = 0
 
-const TILESET_PATHS: Array[String] = [
-	"res://assets/tiles_cpc.png",
-	"res://assets/tiles_cpc_noche.png",
-	"res://assets/tiles_msx.png",
-	"res://assets/tiles_msx2.png",
-	"res://assets/tiles_cga.png",
-	"res://assets/tilesRemake.png",
-	"res://assets/tiles_spectrum.png"
+const FLOOR_NAMES = ["Iglesia", "Scriptorium", "Biblioteca"]
+
+const TILESETS = [
+	{"name": "Original", "file": "res://assets/tiles.png"},
+	{"name": "Amstrad CPC", "file": "res://assets/tiles_cpc.png"},
+	{"name": "Amstrad CPC noche", "file": "res://assets/tiles_cpc_noche.png"},
+	{"name": "MSX", "file": "res://assets/tiles_msx.png"},
+	{"name": "MSX2 Remake", "file": "res://assets/tiles_msx2.png"},
+	{"name": "PC CGA", "file": "res://assets/tiles_cga.png"},
+	{"name": "Remake PC", "file": "res://assets/tilesRemake.png"},
+	{"name": "ZX Spectrum", "file": "res://assets/tiles_spectrum.png"}
 ]
-const MAP_PATHS: Array[String] = [
-	"res://assets/3d_cpc.map",
-	"res://assets/3d.map",
-	"res://assets/3d_cpc_cinta.map"
+
+const MAPS = [
+	{"name": "Original CPC (scripts.abs)", "file": "res://data/scripts.abs"}
 ]
-const MUSIC_PATH := "res://assets/original.ogg"
-const DEFAULT_TILESET: int = 5
-const DEFAULT_MAP: int = 0
-const HABITACIONES_PATH := "res://data/habitaciones.bin"
-const ALTURAS_PATH := "res://data/alturas.bin"
-
-const DEFAULT_ROOM: int = 23
-
-# Resolución lógica original del framebuffer Java.
-const FRAMEBUFFER_WIDTH: float = 320.0
-const FRAMEBUFFER_HEIGHT: float = 208.0
-
-# Panel derecho.
-const SIDEBAR_WIDTH: float = 250.0
-const SIDEBAR_GAP: float = 10.0
-const OUTER_MARGIN: float = 4.0
-
-# Zoom solicitado por el usuario. El zoom real se limita automáticamente
-# al espacio disponible para que nunca se corte el render.
-var requested_zoom: float = 5.0
-var current_zoom: float = 1.0
-
-var data: AbadiaData
-var renderer: AbadiaRenderer
-var mapa: MapaAbadia
-var music_player: AudioStreamPlayer
-var active_map_data: PackedByteArray
-
-var _layout_pending: bool = false
-
 
 func _ready() -> void:
-	_configure_window()
-	_load_data()
-	_create_renderer()
-	_create_map()
-	_create_audio()
-	_connect_viewport_resize()
-	_apply_layout()
+	floor_plan = $HSplit/RightPanel/FloorPlan
+	room_renderer = $HSplit/LeftPanel/SubViewportContainer/SubViewport/RoomTiles
+	floor_select = $HSplit/RightPanel/Controls/FloorSelect
+	tileset_select = $HSplit/RightPanel/Controls/TilesetSelect
+	map_select = $HSplit/RightPanel/Controls/MapSelect
+	room_input = $HSplit/RightPanel/Controls/RoomInput
+	info_label = $HSplit/RightPanel/Info
+	slider = $BottomBar/ElementSlider/Slider
+	slider_value_label = $BottomBar/ElementSlider/SliderValue
+	status_label = $BottomBar/StatusBar
+	player = $HSplit/LeftPanel/SubViewportContainer/SubViewport/Player
+	extended_check = $HSplit/RightPanel/Controls/ExtendedCheck
+	border_check = $HSplit/RightPanel/Controls/BorderCheck
+	progressive_check = $HSplit/RightPanel/Controls/ProgressiveCheck
+	music_check = $HSplit/RightPanel/Controls/MusicCheck
+	lighting_select = $HSplit/RightPanel/Controls/LightingSelect
+	audio = $Audio
 
+	floor_select.clear()
+	for name in FLOOR_NAMES:
+		floor_select.add_item(name)
+	floor_select.selected = 0
 
-func _configure_window() -> void:
-	var window_size := Vector2i(1920, 1200)
-	DisplayServer.window_set_size(window_size)
+	tileset_select.clear()
+	for ts in TILESETS:
+		tileset_select.add_item(ts["name"])
+	tileset_select.selected = 0
 
-	var screen: int = DisplayServer.window_get_current_screen()
-	var screen_size: Vector2i = DisplayServer.screen_get_size(screen)
-	var position := (screen_size - window_size) / 2
+	lighting_select.clear()
+	for name in GameData.LIGHTING_NAMES:
+		lighting_select.add_item(name)
+	lighting_select.selected = 1
 
-	DisplayServer.window_set_position(position)
+	map_select.clear()
+	for m in MAPS:
+		map_select.add_item(m["name"])
+	map_select.selected = 0
 
+	floor_plan.setup(0, 8, 1, room_renderer.floors_data)
+	floor_plan.room_selected.connect(_on_room_selected)
+	floor_select.item_selected.connect(_on_floor_selected)
+	tileset_select.item_selected.connect(_on_tileset_selected)
+	map_select.item_selected.connect(_on_map_selected)
+	lighting_select.item_selected.connect(_on_lighting_selected)
+	room_input.text_submitted.connect(_on_room_submitted)
+	slider.value_changed.connect(_on_slider_changed)
+	music_check.toggled.connect(_on_music_toggled)
+	extended_check.toggled.connect(_on_extended_toggled)
+	border_check.toggled.connect(_on_border_toggled)
+	progressive_check.toggled.connect(_on_progressive_toggled)
 
-func _load_data() -> void:
-	data = AbadiaData.new()
+	_update_ui()
 
-	if not data.load_habitaciones(HABITACIONES_PATH):
-		push_error("No se pudo cargar habitaciones.bin")
+func _on_room_selected(room_id: int) -> void:
+	var fl = floor_select.selected
+	var pos = _find_room_grid_pos(fl, room_id)
+	if pos.x >= 0:
+		room_renderer.build_room(fl, pos.x, pos.y)
+		floor_plan.update_room_by_id(room_id)
+		_position_player()
+		_update_ui()
+
+func _on_floor_selected(index: int) -> void:
+	floor_plan.update_floor(index)
+	_update_ui()
+
+func _on_tileset_selected(index: int) -> void:
+	if index < 0 or index >= TILESETS.size():
 		return
+	room_renderer.load_tileset(TILESETS[index]["file"])
 
-	if not data.load_alturas(ALTURAS_PATH):
-		push_warning("No se pudo cargar alturas.bin")
-
-
-
-func _create_renderer() -> void:
-	if data == null:
+func _on_map_selected(index: int) -> void:
+	if index < 0 or index >= MAPS.size():
 		return
+	var map_file = FileAccess.open(MAPS[index]["file"], FileAccess.READ)
+	if map_file:
+		var text = map_file.get_as_text()
+		map_file.close()
+		room_renderer.room_cache.clear()
+		room_renderer.interpreter.parse_scripts(text)
+		room_renderer.current_room_x = -1
+		room_renderer.current_room_y = -1
+		var fl = floor_select.selected
+		var room_grid = room_renderer.floors_data[fl].get("room", [])
+		for ry in range(room_grid.size()):
+			for rx in range(room_grid[ry].size()):
+				if room_grid[ry][rx] > 0:
+					room_renderer.build_room(fl, rx, ry, true)
+					_position_player()
+					_update_ui()
+					return
 
-	var tiles := load(TILESET_PATHS[DEFAULT_TILESET]) as Texture2D
-
-	if tiles == null:
-		push_error("No se pudo cargar tiles.png")
+func _on_room_submitted(text: String) -> void:
+	var room_num = text.to_int()
+	if room_num < 0 or room_num > 115:
 		return
+	var fl = floor_select.selected
+	var pos = _find_room_grid_pos(fl, room_num)
+	if pos.x >= 0:
+		room_renderer.build_room(fl, pos.x, pos.y)
+		floor_plan.update_room_by_id(room_num)
+		_position_player()
+		_update_ui()
 
+func _on_slider_changed(value: float) -> void:
+	var fl = floor_select.selected
+	room_renderer.build_room_partial(fl, room_renderer.current_room_x, room_renderer.current_room_y, int(value))
+	slider_value_label.text = "%d/%d" % [int(value), room_renderer.get_block_count()]
 
-	renderer = AbadiaRenderer.new()
-	renderer.name = "AbadiaRenderer"
-	add_child(renderer)
-
-	renderer.setup(
-		tiles,
-		data,
-		DEFAULT_ROOM
-	)
-
-
-func _create_map() -> void:
-	mapa = MapaAbadia.new()
-	mapa.name = "MapaAbadia"
-
-	add_child(mapa)
-
-	mapa.room_selected.connect(_on_room_selected)
-	mapa.floor_changed.connect(_on_floor_changed)
-	mapa.tileset_changed.connect(_on_tileset_changed)
-	mapa.map_changed.connect(_on_map_changed)
-	mapa.music_changed.connect(_on_music_changed)
-
-	mapa.set_tileset(DEFAULT_TILESET)
-	mapa.set_map(DEFAULT_MAP)
-	mapa.select_room(DEFAULT_ROOM)
-	_on_map_changed(DEFAULT_MAP)
-
-func _create_audio() -> void:
-	music_player = AudioStreamPlayer.new()
-	music_player.name = "MusicaOriginal"
-	music_player.stream = load(MUSIC_PATH) as AudioStream
-	add_child(music_player)
-
-func _on_tileset_changed(index: int) -> void:
-	if renderer == null or index < 0 or index >= TILESET_PATHS.size():
-		return
-	var texture := load(TILESET_PATHS[index]) as Texture2D
-	if texture == null:
-		push_error("No se pudo cargar el tileset: " + TILESET_PATHS[index])
-		return
-	renderer.set_tiles_texture(texture)
-
-func _on_map_changed(index: int) -> void:
-	if index < 0 or index >= MAP_PATHS.size():
-		return
-	var file := FileAccess.open(MAP_PATHS[index], FileAccess.READ)
-	if file == null:
-		push_error("No se pudo cargar el mapa: " + MAP_PATHS[index])
-		return
-	active_map_data = file.get_buffer(file.get_length())
-	file.close()
-	# El renderer actual todavía usa habitaciones.bin directamente. La carga
-	# queda preparada para sustituir el bloque lógico por el generador original.
-
-func _on_music_changed(enabled: bool) -> void:
-	if music_player == null or music_player.stream == null:
-		return
-	if enabled:
-		music_player.play()
+func _on_music_toggled(pressed: bool) -> void:
+	if pressed:
+		if audio.stream:
+			audio.stream.loop = true
+		audio.play()
 	else:
-		music_player.stop()
+		audio.stop()
 
+func _on_extended_toggled(pressed: bool) -> void:
+	room_renderer.set_extended(pressed)
+	_rebuild_current_room()
 
-func _on_room_selected(room_number: int, floor: int) -> void:
-	if renderer == null:
+func _rebuild_current_room() -> void:
+	var fl = floor_select.selected
+	var rx = room_renderer.current_room_x
+	var ry = room_renderer.current_room_y
+	if rx >= 0 and ry >= 0:
+		room_renderer.build_room(fl, rx, ry, true)
+		_update_ui()
+
+func _on_border_toggled(pressed: bool) -> void:
+	room_renderer.show_border = pressed
+	room_renderer._update_border()
+
+func _on_progressive_toggled(pressed: bool) -> void:
+	if pressed:
+		slider.value = 0
+		slider_value_label.text = "0/%d" % [int(slider.max_value)]
+		_on_slider_changed(0.0)
+		_start_progressive_animation()
+	else:
+		_stop_progressive_animation()
+
+func _start_progressive_animation() -> void:
+	if is_progressive_animating:
 		return
+	is_progressive_animating = true
+	progressive_max = int(slider.max_value)
+	progressive_timer = Timer.new()
+	progressive_timer.wait_time = 0.1
+	progressive_timer.one_shot = false
+	progressive_timer.timeout.connect(_on_progressive_tick)
+	add_child(progressive_timer)
+	progressive_timer.start()
 
-	var data_block: int = mapa.logical_room_to_data_block(room_number)
+func _stop_progressive_animation() -> void:
+	is_progressive_animating = false
+	if progressive_timer:
+		progressive_timer.stop()
+		progressive_timer.queue_free()
+		progressive_timer = null
 
-	if data_block < 0 or data_block >= data.get_room_count():
+func _on_progressive_tick() -> void:
+	var current = int(slider.value) + 1
+	if current > progressive_max:
+		_stop_progressive_animation()
 		return
+	slider.value = current
+	_on_slider_changed(float(current))
 
-	renderer.set_room(data_block)
+func _on_lighting_selected(index: int) -> void:
+	var colors = [
+		GameData.LIGHTING_PITCH_BLACK, GameData.LIGHTING_DAY,
+		GameData.LIGHTING_WARM_DAY, GameData.LIGHTING_DUSK,
+		GameData.LIGHTING_DEEP_NIGHT, GameData.LIGHTING_INDOOR,
+		GameData.LIGHTING_CANDLE, GameData.LIGHTING_TORCH
+	]
+	if index >= 0 and index < colors.size():
+		room_renderer.set_lighting(colors[index])
 
+func _position_player() -> void:
+	player.position = Vector2(8 * 16, 8 * 8)
 
-func _on_floor_changed(_floor: int) -> void:
-	_apply_layout()
+func _find_room_grid_pos(fl: int, room_id: int) -> Vector2i:
+	if fl < 0 or fl >= room_renderer.floors_data.size():
+		return Vector2i(-1, -1)
+	var room_grid = room_renderer.floors_data[fl].get("room", [])
+	for ry in range(room_grid.size()):
+		for rx in range(room_grid[ry].size()):
+			if room_grid[ry][rx] == room_id:
+				return Vector2i(rx, ry)
+	return Vector2i(-1, -1)
 
-
-func _connect_viewport_resize() -> void:
-	var viewport := get_viewport()
-
-	if viewport == null:
-		return
-
-	if not viewport.size_changed.is_connected(_on_viewport_size_changed):
-		viewport.size_changed.connect(_on_viewport_size_changed)
-
-
-func _on_viewport_size_changed() -> void:
-	if _layout_pending:
-		return
-
-	_layout_pending = true
-	call_deferred("_apply_layout_deferred")
-
-
-func _apply_layout_deferred() -> void:
-	_layout_pending = false
-	_apply_layout()
-
-
-func _apply_layout() -> void:
-	if renderer == null or mapa == null:
-		return
-
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-
-	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
-		return
-
-	# --------------------------------------------------------
-	# 1. Reservamos siempre el panel derecho.
-	# --------------------------------------------------------
-	var sidebar_x: float = viewport_size.x - SIDEBAR_WIDTH - OUTER_MARGIN
-
-	if sidebar_x < FRAMEBUFFER_WIDTH + OUTER_MARGIN:
-		# En ventanas extremadamente estrechas reducimos el ancho
-		# del panel antes de permitir que invada el render.
-		var minimum_render_width: float = FRAMEBUFFER_WIDTH + 20.0
-		sidebar_x = minimum_render_width
-
-	var render_area_x: float = OUTER_MARGIN
-	var render_area_y: float = OUTER_MARGIN
-
-	var render_area_width: float = (
-		sidebar_x
-		- SIDEBAR_GAP
-		- render_area_x
-	)
-
-	var render_area_height: float = (
-		viewport_size.y
-		- OUTER_MARGIN * 2.0
-	)
-
-	if render_area_width < FRAMEBUFFER_WIDTH:
-		render_area_width = FRAMEBUFFER_WIDTH
-
-	if render_area_height < FRAMEBUFFER_HEIGHT:
-		render_area_height = FRAMEBUFFER_HEIGHT
-
-	# --------------------------------------------------------
-	# 2. Calculamos el máximo zoom que cabe.
-	#
-	#    El framebuffer lógico siempre sigue siendo 320x208.
-	#    No deformamos X/Y y nunca cortamos el render.
-	# --------------------------------------------------------
-	var max_zoom_x: float = (
-		render_area_width / FRAMEBUFFER_WIDTH
-	)
-
-	var max_zoom_y: float = (
-		render_area_height / FRAMEBUFFER_HEIGHT
-	)
-
-	var max_zoom: float = min(max_zoom_x, max_zoom_y)
-
-	# No permitimos zoom inferior a 1.
-	max_zoom = max(max_zoom, 1.0)
-
-	current_zoom = min(requested_zoom, max_zoom)
-
-	renderer.set_zoom(current_zoom)
-
-	var rendered_size := Vector2(
-		FRAMEBUFFER_WIDTH * current_zoom,
-		FRAMEBUFFER_HEIGHT * current_zoom
-	)
-
-	# --------------------------------------------------------
-	# 3. Centramos el render dentro de su zona izquierda.
-	# --------------------------------------------------------
-	var render_x: float = render_area_x + (
-		render_area_width - rendered_size.x
-	) * 0.5
-
-	var render_y: float = render_area_y + (
-		render_area_height - rendered_size.y
-	) * 0.5
-
-	renderer.position = Vector2(
-		round(render_x),
-		round(render_y)
-	)
-
-	# --------------------------------------------------------
-	# 4. Panel derecho.
-	# --------------------------------------------------------
-	var sidebar_size := Vector2(
-		SIDEBAR_WIDTH,
-		viewport_size.y - OUTER_MARGIN * 2.0
-	)
-
-	mapa.position = Vector2(
-		viewport_size.x - SIDEBAR_WIDTH - OUTER_MARGIN,
-		OUTER_MARGIN
-	)
-
-	mapa.set_layout_size(sidebar_size)
-
-
-func _unhandled_key_input(event: InputEvent) -> void:
-	if not event.is_pressed():
-		return
-
-	if renderer == null or data == null:
-		return
-
-	if event is not InputEventKey:
-		return
-
-	match event.keycode:
-		KEY_RIGHT:
-			renderer.set_room(
-				min(
-					renderer.room_index + 1,
-					data.get_room_count() - 1
-				)
-			)
-
-		KEY_LEFT:
-			renderer.set_room(
-				max(
-					renderer.room_index - 1,
-					0
-				)
-			)
-
-		KEY_HOME:
-			renderer.set_room(0)
-
-		KEY_END:
-			renderer.set_room(
-				data.get_room_count() - 1
-			)
-
-		KEY_1:
-			requested_zoom = 1.0
-			_apply_layout()
-
-		KEY_2:
-			requested_zoom = 2.0
-			_apply_layout()
-
-		KEY_3:
-			requested_zoom = 3.0
-			_apply_layout()
-
-		KEY_4:
-			requested_zoom = 4.0
-			_apply_layout()
-
-		KEY_5:
-			requested_zoom = 5.0
-			_apply_layout()
-
-		KEY_PLUS, KEY_KP_ADD:
-			requested_zoom = min(
-				requested_zoom + 0.25,
-				8.0
-			)
-			_apply_layout()
-
-		KEY_MINUS, KEY_KP_SUBTRACT:
-			requested_zoom = max(
-				requested_zoom - 0.25,
-				1.0
-			)
-			_apply_layout()
+func _update_ui() -> void:
+	var fl = floor_select.selected
+	var rx = room_renderer.current_room_x
+	var ry = room_renderer.current_room_y
+	var room_grid = room_renderer.floors_data[fl].get("room", [])
+	var room_id = 0
+	if ry >= 0 and ry < room_grid.size() and rx >= 0 and rx < room_grid[ry].size():
+		room_id = room_grid[ry][rx]
+	var block_count = room_renderer.get_block_count()
+	slider.max_value = block_count
+	slider.value = block_count
+	slider_value_label.text = "%d/%d" % [block_count, block_count]
+	var text = "Habitación: %d — Elementos: %d — %s" % [room_id, block_count, FLOOR_NAMES[fl]]
+	info_label.text = text
+	status_label.text = text
