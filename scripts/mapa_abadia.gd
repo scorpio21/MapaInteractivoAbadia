@@ -467,9 +467,10 @@ func _layout_controls() -> void:
 	controls_panel.position = Vector2(10, map_top + map_height + 8)
 	controls_panel.size = Vector2(width - 20, controls_height)
 
+	var controls_width: float = controls_panel.size.x
 	var label_width := 92.0
 	var input_x := label_width + 10.0
-	var input_width := width - input_x - 10.0
+	var input_width := maxf(80.0, controls_width - input_x - 10.0)
 	var row_height := 32.0
 	var y := 8.0
 	var inputs: Array[Control] = [floor_selector, tileset_selector, map_selector, room_input]
@@ -486,7 +487,7 @@ func _layout_controls() -> void:
 	]
 	for checkbox in checkboxes:
 		checkbox.position = Vector2(10, y)
-		checkbox.size = Vector2(width - 20, 28)
+		checkbox.size = Vector2(controls_width - 20, 28)
 		y += 29.0
 
 	room_label.position = Vector2(10, controls_panel.position.y + controls_height + 2)
