@@ -20,7 +20,7 @@ const FLOOR_IMAGE_SIZES: Array[Vector2] = [
 ]
 const CELL_SIZES: Array[int] = [16, 32, 32]
 const TILESET_NAMES: Array[String] = [
-	"Amstrad CPC", "Amstrad CPC noche", "MSX", "MSX2 Remake",
+	"Original CPC (binario)", "Amstrad CPC noche", "MSX", "MSX2 Remake",
 	"PC CGA", "Remake PC", "ZX Spectrum"
 ]
 const MAP_NAMES: Array[String] = [

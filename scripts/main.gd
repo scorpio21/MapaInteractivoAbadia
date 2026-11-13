@@ -10,7 +10,7 @@ extends Node2D
 # ============================================================
 
 const TILESET_PATHS: Array[String] = [
-	"res://assets/tiles_cpc.png",
+	"res://assets/tiles.png",
 	"res://assets/tiles_cpc_noche.png",
 	"res://assets/tiles_msx.png",
 	"res://assets/tiles_msx2.png",
@@ -24,7 +24,7 @@ const MAP_PATHS: Array[String] = [
 	"res://assets/3d_cpc_cinta.map"
 ]
 const MUSIC_PATH := "res://assets/original.ogg"
-const DEFAULT_TILESET: int = 5
+const DEFAULT_TILESET: int = 0
 const DEFAULT_MAP: int = 0
 const HABITACIONES_PATH := "res://data/habitaciones.bin"
 const ALTURAS_PATH := "res://data/alturas.bin"
@@ -91,7 +91,10 @@ func _create_renderer() -> void:
 	if data == null:
 		return
 
-	var tiles := load(TILESET_PATHS[DEFAULT_TILESET]) as Texture2D
+	# habitaciones.bin contiene GRH del atlas original 256x3376.
+	# Los atlas Remake/MSX/CPC tienen otra distribución y requieren
+	# un adaptador de coordenadas antes de poder usarse aquí.
+	var tiles := load(TILESET_PATHS[0]) as Texture2D
 
 	if tiles == null:
 		push_error("No se pudo cargar tiles.png")
@@ -135,7 +138,9 @@ func _create_audio() -> void:
 func _on_tileset_changed(index: int) -> void:
 	if renderer == null or index < 0 or index >= TILESET_PATHS.size():
 		return
-	var texture := load(TILESET_PATHS[index]) as Texture2D
+	# Mantener el render binario correcto hasta portar el adaptador de atlas.
+	# Cargar otro tileset con estos GRH produce bloques desplazados/corruptos.
+	var texture := load(TILESET_PATHS[0]) as Texture2D
 	if texture == null:
 		push_error("No se pudo cargar el tileset: " + TILESET_PATHS[index])
 		return
