@@ -36,7 +36,7 @@ const FRAMEBUFFER_WIDTH: float = 320.0
 const FRAMEBUFFER_HEIGHT: float = 208.0
 
 # Panel derecho.
-const SIDEBAR_WIDTH: float = 250.0
+const SIDEBAR_WIDTH: float = 310.0
 const SIDEBAR_GAP: float = 10.0
 const OUTER_MARGIN: float = 4.0
 
