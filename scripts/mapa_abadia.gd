@@ -8,6 +8,8 @@ signal floor_changed(floor: int)
 signal tileset_changed(tileset_index: int)
 signal map_changed(map_index: int)
 signal music_changed(enabled: bool)
+signal border_changed(enabled: bool)
+signal progressive_changed(enabled: bool)
 
 const FLOOR_NAMES: Array[String] = ["Iglesia", "Scriptorium", "Biblioteca"]
 const FLOOR_IMAGES: Array[String] = [
@@ -417,6 +419,8 @@ func _build_ui() -> void:
 	music_toggle = toggle_nodes[3]
 	border_toggle.button_pressed = true
 	music_toggle.toggled.connect(_on_music_toggled)
+	border_toggle.toggled.connect(func(enabled: bool) -> void: border_changed.emit(enabled))
+	progressive_toggle.toggled.connect(func(enabled: bool) -> void: progressive_changed.emit(enabled))
 
 	room_label = Label.new()
 	room_label.name = "Habitacion"

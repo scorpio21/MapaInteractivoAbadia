@@ -1,0 +1,11 @@
+DIAGNÓSTICO - REGISTROS GRH (NO SON ELEMENTOS DEL VISOR)
+Archivo: ..\assets\bin\habitaciones.bin
+Bloques físicos en el binario: 450
+Formato verificado contra abadia_data.gd: 20x22x3, 4 bytes/GRH, bytes 2-3 LE.
+ATENCIÓN: Bloque físico y número lógico de habitación pueden diferir.
+La numeración 28/28 del visor original NO puede recuperarse contando GRH únicos.
+
+Bloque 39: 1320 registros, 853 GRH no cero, 202 GRH distintos
+Bloque 69: 1320 registros, 763 GRH no cero, 193 GRH distintos
+Bloque 77: 1320 registros, 770 GRH no cero, 173 GRH distintos
+Bloque 103: 1320 registros, 981 GRH no cero, 199 GRH distintos

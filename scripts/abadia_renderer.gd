@@ -44,11 +44,140 @@ var data: AbadiaData
 var room_index: int = 0
 var zoom_level: float = DEFAULT_ZOOM
 
+# Visualización progresiva provisional por grupos de GRH.
+# El contador NO equivale a los elementos lógicos originales del visor.
+var show_border: bool = true
+var progressive_enabled: bool = false
+const PROGRESSIVE_INTERVAL: float = 0.16
+const TEST_ROOM: int = 77
+const TEST_ROOM_STEPS: int = 28
+const MAX_PREVIEW_STEPS: int = 32
+var total_elements: int = 1
+var visible_elements: int = 1
+var _progressive_accumulator: float = 0.0
+
+# Motor arquitectónico ORIGINAL (bloques.bin + 3d*.map).
+# Modo GRH anterior permanece disponible para comparar.
+var original_mode: bool = false
+var original_generator: AbadiaScreenGenerator
+var original_tileset: Texture2D
+var original_room_number: int = 23
+var original_extended: bool = false
+
+func configure_original_engine(generator: AbadiaScreenGenerator, atlas: Texture2D) -> void:
+	original_generator = generator
+	original_tileset = atlas
+	if original_mode:
+		_restart_progressive()
+
+func set_original_mode(enabled: bool) -> void:
+	if enabled and (original_generator == null or original_tileset == null):
+		push_warning("Motor arquitectónico no disponible; se mantiene el GRH")
+		return
+	original_mode = enabled
+	_restart_progressive()
+
+func set_original_room(number: int) -> void:
+	original_room_number = number
+	if original_mode:
+		_restart_progressive()
+
+func set_original_map_bytes(bytes: PackedByteArray) -> void:
+	if original_generator == null:
+		return
+	original_generator.set_screen_data(bytes)
+	if original_mode:
+		_restart_progressive()
+
+func set_original_tileset(atlas: Texture2D) -> void:
+	if atlas == null:
+		return
+	original_tileset = atlas
+	if original_mode:
+		queue_redraw()
+
+func set_original_extended(enabled: bool) -> void:
+	original_extended = enabled
+	if original_generator != null:
+		original_generator.set_extended_view(enabled)
+	if original_mode:
+		_restart_progressive()
+
+func get_logical_render_size() -> Vector2:
+	if original_mode and original_generator != null and original_tileset != null:
+		var tile_width: float = float(original_tileset.get_width()) / 16.0
+		var tile_height: float = float(original_tileset.get_height()) / 16.0
+		return Vector2(float(AbadiaScreenGenerator.EXTENDED_WIDTH if original_extended else AbadiaScreenGenerator.BASE_WIDTH) * tile_width,
+			float(AbadiaScreenGenerator.EXTENDED_HEIGHT if original_extended else AbadiaScreenGenerator.BASE_HEIGHT) * tile_height)
+	return Vector2(VIEW_WIDTH, VIEW_HEIGHT)
+
+
+signal element_progress_changed(visible: int, total: int)
+
+func set_show_border(enabled: bool) -> void:
+	show_border = enabled
+	queue_redraw()
+
+func _refresh_element_count() -> void:
+	if original_mode and original_generator != null:
+		var result: int = original_generator.generate_screen(original_room_number, -1)
+		total_elements = maxi(0, result)
+		return
+	# Recuento provisional por GRH únicos, calculado para la habitación activa.
+	# Para la 77 conservamos 28 pasos de prueba; no son elementos .map reales.
+	if data == null:
+		total_elements = 1
+		return
+	var unique_grhs: Dictionary = {}
+	for y in range(ROOM_HEIGHT):
+		for x in range(ROOM_WIDTH):
+			for layer in range(LAYERS):
+				var grh: int = data.get_grh(room_index, x, y, layer)
+				if grh != 0:
+					unique_grhs[grh] = true
+	total_elements = TEST_ROOM_STEPS if room_index == TEST_ROOM else clampi(unique_grhs.size(), 1, MAX_PREVIEW_STEPS)
+
+func set_visible_elements(count: int) -> void:
+	progressive_enabled = false
+	set_process(false)
+	visible_elements = clampi(count, 0, total_elements)
+	element_progress_changed.emit(visible_elements, total_elements)
+	queue_redraw()
+
+func set_progressive_enabled(enabled: bool) -> void:
+	progressive_enabled = enabled
+	_restart_progressive()
+
+func _restart_progressive() -> void:
+	_refresh_element_count()
+	_progressive_accumulator = 0.0
+	visible_elements = 0 if progressive_enabled else total_elements
+	set_process(progressive_enabled)
+	element_progress_changed.emit(visible_elements, total_elements)
+	queue_redraw()
+
+func _process(delta: float) -> void:
+	if not progressive_enabled:
+		set_process(false)
+		return
+	_progressive_accumulator += delta
+	var interval: float = 0.1 if original_mode else PROGRESSIVE_INTERVAL
+	while _progressive_accumulator >= interval and visible_elements < total_elements:
+		_progressive_accumulator -= interval
+		visible_elements += 1
+		element_progress_changed.emit(visible_elements, total_elements)
+	if visible_elements >= total_elements:
+		progressive_enabled = false
+		set_process(false)
+	queue_redraw()
+
+
 var selected_cell: Vector2i = Vector2i(-1, -1)
 var selected_grhs: Array[int] = [0, 0, 0]
 var selected_height: int = 0
 
 func _ready() -> void:
+	set_process(false)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	queue_redraw()
 
@@ -70,7 +199,7 @@ func setup(
 		tiles_image = tiles_texture.get_image()
 	diagnostics.set_tiles_image(tiles_image)
 
-	queue_redraw()
+	_restart_progressive()
 
 func set_tiles_texture(texture: Texture2D) -> void:
 	tiles_texture = texture
@@ -96,15 +225,11 @@ func set_room(index: int) -> void:
 
 	room_index = index
 
-	queue_redraw()
+	_restart_progressive()
 
 
 func set_zoom(value: float) -> void:
-	zoom_level = clamp(
-		value,
-		float(MIN_ZOOM),
-		float(MAX_ZOOM)
-	)
+	zoom_level = clampf(value, 0.1 if original_mode else float(MIN_ZOOM), float(MAX_ZOOM))
 
 	scale = Vector2(
 		zoom_level,
@@ -156,6 +281,10 @@ func _draw() -> void:
 		zoom_level
 	)
 
+	if original_mode and original_generator != null and original_tileset != null:
+		_draw_original_screen()
+		return
+
 	# Fondo original.
 	draw_rect(
 		Rect2(
@@ -181,12 +310,51 @@ func _draw() -> void:
 
 	_render_room()
 
+	if show_border:
+		draw_rect(Rect2(0.5, 0.5, MAP_WIDTH - 1.0, MAP_HEIGHT - 1.0), Color(0.68, 0.68, 0.68, 0.8), false, 1.0)
+
 	# Las marcas se dibujan DESPUÉS del mapa.
 	# Así siempre son visibles.
 	if diagnostic_enabled:
 		_draw_diagnostic_overlay()
 	if diagnostic_enabled:
 		_draw_selected_cell()
+
+# ============================================================
+# DIBUJO ARQUITECTÓNICO ORIGINAL: orden de elementos del .map
+# ============================================================
+
+func _draw_original_screen() -> void:
+	var image_size: Vector2 = get_logical_render_size()
+	draw_rect(Rect2(Vector2.ZERO, image_size), Color.BLACK)
+	var result: int = original_generator.generate_screen(original_room_number, visible_elements)
+	if result < 0:
+		return
+	var atlas_w: int = original_tileset.get_width()
+	var atlas_h: int = original_tileset.get_height()
+	var tile_w: int = atlas_w / 16
+	var tile_h: int = atlas_h / 16
+	if tile_w <= 0 or tile_h <= 0:
+		return
+	var width: int = original_generator.width
+	var height: int = original_generator.height
+	var planes: int = original_generator.num_planes
+	var buffer: PackedByteArray = original_generator.tiles
+	var source_zero := Rect2(0.0, 0.0, float(tile_w), float(tile_h))
+	for y in range(height):
+		for x in range(width):
+			var dest := Rect2(float(x * tile_w), float(y * tile_h), float(tile_w), float(tile_h))
+			# Exactamente como el canvas JS: base 0, después planos no vacíos.
+			draw_texture_rect_region(original_tileset, dest, source_zero)
+			for plane in range(planes):
+				var index: int = ((y * width + x) * planes + plane) * 3 + 2
+				var tile_id: int = int(buffer[index])
+				if tile_id == 0:
+					continue
+				var src := Rect2(float((tile_id & 15) * tile_w), float((tile_id >> 4) * tile_h), float(tile_w), float(tile_h))
+				draw_texture_rect_region(original_tileset, dest, src)
+	if show_border and original_extended:
+		draw_rect(Rect2(Vector2.ZERO, image_size), Color(0.68, 0.68, 0.68, 0.8), false, 1.0)
 
 # ============================================================
 # RENDER DE HABITACIÓN
@@ -196,49 +364,35 @@ func _render_room() -> void:
 	if data == null:
 		return
 
+	# Agrupación temporal por tipo de GRH: NO son elementos
+	# estructurales del .map. Evita el corte por filas y conserva el
+	# orden original de superposición de todos los tiles.
+	var operations: Array[Vector4i] = []
+	var distinct_grhs: Array[int] = []
+	var found_grhs: Dictionary = {}
 	for y in range(ROOM_HEIGHT):
 		for x in range(ROOM_WIDTH):
-
-			var dest_x: int = x * CELL_WIDTH
-			var dest_y: int = y * CELL_HEIGHT
-
-			# =====================================================
-			# 1. TILE BASE
-			#
-			# El Java original SIEMPRE dibuja GRH 0 antes de
-			# procesar las tres capas.
-			#
-			# GRH 0 corresponde a SRC=(0,0) del tileset.
-			# =====================================================
-			_draw_grh(
-				dest_x,
-				dest_y,
-				0,
-				x,
-				y,
-				-1
-			)
-
-			# =====================================================
-			# 2. LAS TRES CAPAS DE LA CELDA
-			# =====================================================
+			operations.append(Vector4i(x, y, 0, -1))
 			for layer in range(LAYERS):
-				var grh: int = data.get_grh(
-					room_index,
-					x,
-					y,
-					layer
-				)
-
+				var grh: int = data.get_grh(room_index, x, y, layer)
 				if grh != 0:
-					_draw_grh(
-						dest_x,
-						dest_y,
-						grh,
-						x,
-						y,
-						layer
-					)
+					operations.append(Vector4i(x, y, grh, layer))
+					if not found_grhs.has(grh):
+						found_grhs[grh] = true
+						distinct_grhs.append(grh)
+
+	var grh_to_step: Dictionary = {}
+	if total_elements > 1:
+		var count: int = distinct_grhs.size()
+		for i in range(count):
+			var step: int = int(floor(float(i) * float(total_elements) / float(maxi(1, count))))
+			grh_to_step[distinct_grhs[i]] = step
+
+	for op in operations:
+		var step: int = 0 if op.z == 0 else int(grh_to_step.get(op.z, 0))
+		if visible_elements <= step:
+			continue
+		_draw_grh(op.x * CELL_WIDTH, op.y * CELL_HEIGHT, op.z, op.x, op.y, op.w)
 
 
 # ============================================================

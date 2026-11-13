@@ -1,0 +1,16 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dhvgjs5imc6ka"
+
+[deps]
+
+source_file="res://python-herramientas/resultados/resumen.csv"
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

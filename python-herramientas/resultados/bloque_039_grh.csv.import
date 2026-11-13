@@ -1,0 +1,16 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ckk0p6rieqa4g"
+
+[deps]
+
+source_file="res://python-herramientas/resultados/bloque_039_grh.csv"
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

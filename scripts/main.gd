@@ -9,6 +9,16 @@ extends Node2D
 #   - El minimapa nunca invade el área del render
 # ============================================================
 
+# Atlas del visor original: índice 0 NO es assets/tiles.png.
+const ORIGINAL_TILESET_PATHS: Array[String] = [
+	"res://assets/tiles_cpc.png",
+	"res://assets/tiles_cpc_noche.png",
+	"res://assets/tiles_msx.png",
+	"res://assets/tiles_msx2.png",
+	"res://assets/tiles_cga.png",
+	"res://assets/tilesRemake.png",
+	"res://assets/tiles_spectrum.png"
+]
 const TILESET_PATHS: Array[String] = [
 	"res://assets/tiles.png",
 	"res://assets/tiles_cpc_noche.png",
@@ -50,8 +60,21 @@ var renderer: AbadiaRenderer
 var mapa: MapaAbadia
 var music_player: AudioStreamPlayer
 var active_map_data: PackedByteArray
+var original_generator: AbadiaScreenGenerator
+var original_enabled: bool = false
+var selected_tileset: int = DEFAULT_TILESET
+var selected_map: int = DEFAULT_MAP
+var original_mode_button: Button
 
 var _layout_pending: bool = false
+
+# Barra inferior temporal de pasos de dibujo.
+var elements_footer: Panel
+var elements_slider: HSlider
+var elements_label: Label
+var elements_status: Label
+var _syncing_slider: bool = false
+const FOOTER_HEIGHT: float = 76.0
 
 
 func _ready() -> void:
@@ -60,6 +83,7 @@ func _ready() -> void:
 	_create_renderer()
 	_create_map()
 	_create_audio()
+	_create_elements_footer()
 	_connect_viewport_resize()
 	_apply_layout()
 
@@ -110,6 +134,16 @@ func _create_renderer() -> void:
 		data,
 		DEFAULT_ROOM
 	)
+	renderer.element_progress_changed.connect(_on_element_progress_changed)
+	original_generator = AbadiaScreenGenerator.new()
+	if original_generator.load_from_files("res://assets/bloques.bin", MAP_PATHS[DEFAULT_MAP]):
+		var original_atlas := load(ORIGINAL_TILESET_PATHS[DEFAULT_TILESET]) as Texture2D
+		if original_atlas == null:
+			push_error("No se pudo cargar atlas arquitectónico")
+		else:
+			renderer.configure_original_engine(original_generator, original_atlas)
+	else:
+		push_error("No se pudo cargar intérprete original: " + original_generator.last_error)
 
 
 func _create_map() -> void:
@@ -123,6 +157,10 @@ func _create_map() -> void:
 	mapa.tileset_changed.connect(_on_tileset_changed)
 	mapa.map_changed.connect(_on_map_changed)
 	mapa.music_changed.connect(_on_music_changed)
+	mapa.border_changed.connect(_on_border_changed)
+	mapa.progressive_changed.connect(_on_progressive_changed)
+	if mapa.extended_toggle != null:
+		mapa.extended_toggle.toggled.connect(_on_extended_changed)
 
 	mapa.set_tileset(DEFAULT_TILESET)
 	mapa.set_map(DEFAULT_MAP)
@@ -134,17 +172,25 @@ func _create_audio() -> void:
 	music_player.name = "MusicaOriginal"
 	music_player.stream = load(MUSIC_PATH) as AudioStream
 	add_child(music_player)
+	if music_player.stream == null:
+		push_error("No se pudo cargar la música: " + MUSIC_PATH)
+	else:
+		music_player.volume_db = -8.0
+		music_player.bus = "Master"
 
 func _on_tileset_changed(index: int) -> void:
-	if renderer == null or index < 0 or index >= TILESET_PATHS.size():
+	if renderer == null or index < 0 or index >= ORIGINAL_TILESET_PATHS.size():
 		return
-	# Mantener el render binario correcto hasta portar el adaptador de atlas.
-	# Cargar otro tileset con estos GRH produce bloques desplazados/corruptos.
-	var texture := load(TILESET_PATHS[0]) as Texture2D
-	if texture == null:
-		push_error("No se pudo cargar el tileset: " + TILESET_PATHS[index])
+	selected_tileset = index
+	# En modo GRH, tiles.png se mantiene fijo para evitar alterar sus índices.
+	# En modo original, se utiliza la imagen real seleccionada del visor.
+	var original_atlas := load(ORIGINAL_TILESET_PATHS[index]) as Texture2D
+	if original_atlas == null:
+		push_error("No se pudo cargar el tileset: " + ORIGINAL_TILESET_PATHS[index])
 		return
-	renderer.set_tiles_texture(texture)
+	renderer.set_original_tileset(original_atlas)
+	if original_enabled:
+		_apply_layout()
 
 func _on_map_changed(index: int) -> void:
 	if index < 0 or index >= MAP_PATHS.size():
@@ -155,11 +201,39 @@ func _on_map_changed(index: int) -> void:
 		return
 	active_map_data = file.get_buffer(file.get_length())
 	file.close()
-	# El renderer actual todavía usa habitaciones.bin directamente. La carga
-	# queda preparada para sustituir el bloque lógico por el generador original.
+	selected_map = index
+	if renderer != null:
+		renderer.set_original_map_bytes(active_map_data)
+		_update_element_footer()
+
+func _on_original_mode_pressed() -> void:
+	if renderer == null or original_generator == null:
+		return
+	original_enabled = not original_enabled
+	renderer.set_original_mode(original_enabled)
+	original_enabled = renderer.original_mode
+	original_mode_button.text = "Motor: ORIGINAL" if original_enabled else "Motor: GRH"
+	_apply_layout()
+	_update_element_footer()
+
+func _on_border_changed(enabled: bool) -> void:
+	if renderer != null:
+		renderer.set_show_border(enabled)
+
+func _on_progressive_changed(enabled: bool) -> void:
+	if renderer != null:
+		renderer.set_progressive_enabled(enabled)
+
+func _on_extended_changed(enabled: bool) -> void:
+	if renderer != null:
+		renderer.set_original_extended(enabled)
+		_apply_layout()
 
 func _on_music_changed(enabled: bool) -> void:
-	if music_player == null or music_player.stream == null:
+	if music_player == null:
+		return
+	if music_player.stream == null:
+		push_warning("Música no disponible: " + MUSIC_PATH)
 		return
 	if enabled:
 		music_player.play()
@@ -177,11 +251,84 @@ func _on_room_selected(room_number: int, floor: int) -> void:
 		return
 
 	renderer.set_room(data_block)
+	renderer.set_original_room(room_number)
+	_update_element_footer()
 
 
 func _on_floor_changed(_floor: int) -> void:
 	_apply_layout()
 
+
+func _create_elements_footer() -> void:
+	elements_footer = Panel.new()
+	elements_footer.name = "BarraElementos"
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#182044")
+	style.border_color = Color("#293568")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(7)
+	elements_footer.add_theme_stylebox_override("panel", style)
+	add_child(elements_footer)
+
+	var caption := Label.new()
+	caption.text = "Elementos"
+	caption.position = Vector2(16, 12)
+	caption.size = Vector2(82, 24)
+	elements_footer.add_child(caption)
+
+	elements_slider = HSlider.new()
+	elements_slider.name = "DeslizadorElementos"
+	elements_slider.min_value = 0
+	elements_slider.max_value = 1
+	elements_slider.step = 1
+	elements_slider.value = 1
+	elements_slider.value_changed.connect(_on_elements_slider_changed)
+	elements_footer.add_child(elements_slider)
+
+	elements_label = Label.new()
+	elements_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	elements_footer.add_child(elements_label)
+
+	original_mode_button = Button.new()
+	original_mode_button.name = "BotonMotorOriginal"
+	original_mode_button.text = "Motor: GRH"
+	original_mode_button.tooltip_text = "Cambiar entre renderizador GRH y elementos originales"
+	original_mode_button.pressed.connect(_on_original_mode_pressed)
+	elements_footer.add_child(original_mode_button)
+
+	elements_status = Label.new()
+	elements_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	elements_footer.add_child(elements_status)
+	_update_element_footer()
+
+func _on_elements_slider_changed(value: float) -> void:
+	if _syncing_slider or renderer == null:
+		return
+	renderer.set_visible_elements(int(value))
+	if mapa != null and mapa.progressive_toggle != null:
+		mapa.progressive_toggle.set_pressed_no_signal(false)
+
+func _on_element_progress_changed(_visible: int, _total: int) -> void:
+	_update_element_footer()
+
+func _update_element_footer() -> void:
+	if renderer == null or elements_slider == null:
+		return
+	_syncing_slider = true
+	elements_slider.max_value = float(renderer.total_elements)
+	elements_slider.value = float(renderer.visible_elements)
+	elements_slider.editable = renderer.total_elements > 0
+	elements_label.text = "%d/%d" % [renderer.visible_elements, renderer.total_elements]
+	var floor_name := ""
+	if mapa != null:
+		floor_name = ["Iglesia", "Scriptorium", "Biblioteca"][clampi(mapa.current_floor, 0, 2)]
+	if original_enabled:
+		elements_status.text = "Habitación: %d — Elementos: %d/%d — %s — Original (%s)" % [
+			renderer.original_room_number, renderer.visible_elements, renderer.total_elements,
+			floor_name, ["CPC", "MSX", "CPC cinta"][selected_map]]
+	else:
+		elements_status.text = "Habitación: %d — Pasos GRH: %d/%d — %s (provisional)" % [renderer.room_index, renderer.visible_elements, renderer.total_elements, floor_name]
+	_syncing_slider = false
 
 func _connect_viewport_resize() -> void:
 	var viewport := get_viewport()
@@ -238,6 +385,7 @@ func _apply_layout() -> void:
 	var render_area_height: float = (
 		viewport_size.y
 		- OUTER_MARGIN * 2.0
+		- FOOTER_HEIGHT - 8.0
 	)
 
 	if render_area_width < FRAMEBUFFER_WIDTH:
@@ -252,27 +400,20 @@ func _apply_layout() -> void:
 	#    El framebuffer lógico siempre sigue siendo 320x208.
 	#    No deformamos X/Y y nunca cortamos el render.
 	# --------------------------------------------------------
-	var max_zoom_x: float = (
-		render_area_width / FRAMEBUFFER_WIDTH
-	)
-
-	var max_zoom_y: float = (
-		render_area_height / FRAMEBUFFER_HEIGHT
-	)
+	var logical_size: Vector2 = renderer.get_logical_render_size()
+	var max_zoom_x: float = render_area_width / logical_size.x
+	var max_zoom_y: float = render_area_height / logical_size.y
 
 	var max_zoom: float = min(max_zoom_x, max_zoom_y)
 
-	# No permitimos zoom inferior a 1.
-	max_zoom = max(max_zoom, 1.0)
+	# Modo extendido puede necesitar reducir la escala para caber.
+	max_zoom = max(max_zoom, 0.1)
 
 	current_zoom = min(requested_zoom, max_zoom)
 
 	renderer.set_zoom(current_zoom)
 
-	var rendered_size := Vector2(
-		FRAMEBUFFER_WIDTH * current_zoom,
-		FRAMEBUFFER_HEIGHT * current_zoom
-	)
+	var rendered_size := logical_size * current_zoom
 
 	# --------------------------------------------------------
 	# 3. Centramos el render dentro de su zona izquierda.
@@ -295,7 +436,7 @@ func _apply_layout() -> void:
 	# --------------------------------------------------------
 	var sidebar_size := Vector2(
 		SIDEBAR_WIDTH,
-		viewport_size.y - OUTER_MARGIN * 2.0
+		viewport_size.y - OUTER_MARGIN * 2.0 - FOOTER_HEIGHT - 8.0
 	)
 
 	mapa.position = Vector2(
@@ -304,6 +445,19 @@ func _apply_layout() -> void:
 	)
 
 	mapa.set_layout_size(sidebar_size)
+
+	if elements_footer != null:
+		elements_footer.position = Vector2(OUTER_MARGIN, viewport_size.y - FOOTER_HEIGHT - OUTER_MARGIN)
+		elements_footer.size = Vector2(viewport_size.x - OUTER_MARGIN * 2.0, FOOTER_HEIGHT)
+		elements_slider.position = Vector2(100, 10)
+		# Reservar espacio para el conmutador de motor.
+		elements_slider.size = Vector2(maxf(120.0, elements_footer.size.x - 360), 27)
+		original_mode_button.position = Vector2(elements_footer.size.x - 235, 8)
+		original_mode_button.size = Vector2(130, 32)
+		elements_label.position = Vector2(elements_footer.size.x - 90, 12)
+		elements_label.size = Vector2(72, 24)
+		elements_status.position = Vector2(12, 43)
+		elements_status.size = Vector2(elements_footer.size.x - 24, 24)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

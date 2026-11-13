@@ -1,0 +1,16 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dgodqhvlc4ss3"
+
+[deps]
+
+source_file="res://python-herramientas/resultados/bloque_077_frecuencias.csv"
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
