@@ -1,0 +1,300 @@
+# Cuadrículas calibradas: Iglesia 16x16, Scriptorium/Biblioteca 32x32
+# Los puntos de las habitaciones proceden de referencias originales conocidas.
+# No sustituye room_positions ni el TXT de clics.
+
+[PLANTA 0: Iglesia] celda=16x16 offset=(4,4)
+[HABITACIONES]
+0: Vector2(60, 44),
+1: Vector2(44, 44),
+2: Vector2(28, 44),
+3: Vector2(28, 60),
+4: Vector2(28, 76),
+5: Vector2(60, 92),
+6: Vector2(76, 92),
+7: Vector2(60, 28),
+8: Vector2(76, 28),
+9: Vector2(28, 28),
+10: Vector2(12, 28),
+11: Vector2(28, 92),
+12: Vector2(12, 92),
+13: Vector2(76, 44),
+14: Vector2(92, 44),
+15: Vector2(44, 108),
+16: Vector2(60, 108),
+17: Vector2(76, 108),
+18: Vector2(92, 108),
+19: Vector2(92, 124),
+20: Vector2(108, 124),
+21: Vector2(124, 124),
+22: Vector2(124, 140),
+23: Vector2(124, 156),
+24: Vector2(140, 124),
+25: Vector2(156, 124),
+26: Vector2(156, 108),
+27: Vector2(124, 108),
+28: Vector2(44, 92),
+29: Vector2(44, 76),
+30: Vector2(60, 76),
+31: Vector2(60, 60),
+32: Vector2(124, 92),
+33: Vector2(124, 76),
+34: Vector2(124, 60),
+35: Vector2(124, 44),
+36: Vector2(108, 44),
+37: Vector2(140, 44),
+38: Vector2(124, 28),
+39: Vector2(124, 12),
+40: Vector2(108, 28),
+41: Vector2(140, 28),
+42: Vector2(92, 28),
+43: Vector2(156, 44),
+44: Vector2(172, 44),
+45: Vector2(188, 44),
+46: Vector2(156, 60),
+47: Vector2(172, 60),
+48: Vector2(188, 60),
+49: Vector2(156, 76),
+50: Vector2(172, 76),
+51: Vector2(188, 76),
+52: Vector2(156, 92),
+53: Vector2(172, 92),
+54: Vector2(188, 92),
+55: Vector2(156, 28),
+56: Vector2(172, 28),
+57: Vector2(188, 28),
+60: Vector2(92, 92),
+61: Vector2(92, 76),
+62: Vector2(156, 12),
+[TODAS LAS CELDAS 16x16 DE LA IMAGEN]
+celda(0,0): Vector2(12,12)
+celda(1,0): Vector2(28,12)
+celda(2,0): Vector2(44,12)
+celda(3,0): Vector2(60,12)
+celda(4,0): Vector2(76,12)
+celda(5,0): Vector2(92,12)
+celda(6,0): Vector2(108,12)
+celda(7,0): Vector2(124,12)
+celda(8,0): Vector2(140,12)
+celda(9,0): Vector2(156,12)
+celda(10,0): Vector2(172,12)
+celda(11,0): Vector2(188,12)
+celda(0,1): Vector2(12,28)
+celda(1,1): Vector2(28,28)
+celda(2,1): Vector2(44,28)
+celda(3,1): Vector2(60,28)
+celda(4,1): Vector2(76,28)
+celda(5,1): Vector2(92,28)
+celda(6,1): Vector2(108,28)
+celda(7,1): Vector2(124,28)
+celda(8,1): Vector2(140,28)
+celda(9,1): Vector2(156,28)
+celda(10,1): Vector2(172,28)
+celda(11,1): Vector2(188,28)
+celda(0,2): Vector2(12,44)
+celda(1,2): Vector2(28,44)
+celda(2,2): Vector2(44,44)
+celda(3,2): Vector2(60,44)
+celda(4,2): Vector2(76,44)
+celda(5,2): Vector2(92,44)
+celda(6,2): Vector2(108,44)
+celda(7,2): Vector2(124,44)
+celda(8,2): Vector2(140,44)
+celda(9,2): Vector2(156,44)
+celda(10,2): Vector2(172,44)
+celda(11,2): Vector2(188,44)
+celda(0,3): Vector2(12,60)
+celda(1,3): Vector2(28,60)
+celda(2,3): Vector2(44,60)
+celda(3,3): Vector2(60,60)
+celda(4,3): Vector2(76,60)
+celda(5,3): Vector2(92,60)
+celda(6,3): Vector2(108,60)
+celda(7,3): Vector2(124,60)
+celda(8,3): Vector2(140,60)
+celda(9,3): Vector2(156,60)
+celda(10,3): Vector2(172,60)
+celda(11,3): Vector2(188,60)
+celda(0,4): Vector2(12,76)
+celda(1,4): Vector2(28,76)
+celda(2,4): Vector2(44,76)
+celda(3,4): Vector2(60,76)
+celda(4,4): Vector2(76,76)
+celda(5,4): Vector2(92,76)
+celda(6,4): Vector2(108,76)
+celda(7,4): Vector2(124,76)
+celda(8,4): Vector2(140,76)
+celda(9,4): Vector2(156,76)
+celda(10,4): Vector2(172,76)
+celda(11,4): Vector2(188,76)
+celda(0,5): Vector2(12,92)
+celda(1,5): Vector2(28,92)
+celda(2,5): Vector2(44,92)
+celda(3,5): Vector2(60,92)
+celda(4,5): Vector2(76,92)
+celda(5,5): Vector2(92,92)
+celda(6,5): Vector2(108,92)
+celda(7,5): Vector2(124,92)
+celda(8,5): Vector2(140,92)
+celda(9,5): Vector2(156,92)
+celda(10,5): Vector2(172,92)
+celda(11,5): Vector2(188,92)
+celda(0,6): Vector2(12,108)
+celda(1,6): Vector2(28,108)
+celda(2,6): Vector2(44,108)
+celda(3,6): Vector2(60,108)
+celda(4,6): Vector2(76,108)
+celda(5,6): Vector2(92,108)
+celda(6,6): Vector2(108,108)
+celda(7,6): Vector2(124,108)
+celda(8,6): Vector2(140,108)
+celda(9,6): Vector2(156,108)
+celda(10,6): Vector2(172,108)
+celda(11,6): Vector2(188,108)
+celda(0,7): Vector2(12,124)
+celda(1,7): Vector2(28,124)
+celda(2,7): Vector2(44,124)
+celda(3,7): Vector2(60,124)
+celda(4,7): Vector2(76,124)
+celda(5,7): Vector2(92,124)
+celda(6,7): Vector2(108,124)
+celda(7,7): Vector2(124,124)
+celda(8,7): Vector2(140,124)
+celda(9,7): Vector2(156,124)
+celda(10,7): Vector2(172,124)
+celda(11,7): Vector2(188,124)
+celda(0,8): Vector2(12,140)
+celda(1,8): Vector2(28,140)
+celda(2,8): Vector2(44,140)
+celda(3,8): Vector2(60,140)
+celda(4,8): Vector2(76,140)
+celda(5,8): Vector2(92,140)
+celda(6,8): Vector2(108,140)
+celda(7,8): Vector2(124,140)
+celda(8,8): Vector2(140,140)
+celda(9,8): Vector2(156,140)
+celda(10,8): Vector2(172,140)
+celda(11,8): Vector2(188,140)
+celda(0,9): Vector2(12,156)
+celda(1,9): Vector2(28,156)
+celda(2,9): Vector2(44,156)
+celda(3,9): Vector2(60,156)
+celda(4,9): Vector2(76,156)
+celda(5,9): Vector2(92,156)
+celda(6,9): Vector2(108,156)
+celda(7,9): Vector2(124,156)
+celda(8,9): Vector2(140,156)
+celda(9,9): Vector2(156,156)
+celda(10,9): Vector2(172,156)
+celda(11,9): Vector2(188,156)
+
+[PLANTA 1: Scriptorium] celda=32x32 offset=(19,21)
+[HABITACIONES]
+63: Vector2(27, 157),
+64: Vector2(91, 125),
+65: Vector2(59, 125),
+66: Vector2(59, 93),
+67: Vector2(59, 61),
+68: Vector2(59, 29),
+69: Vector2(27, 29),
+70: Vector2(59, 157),
+71: Vector2(91, 61),
+72: Vector2(123, 29),
+73: Vector2(155, 29),
+74: Vector2(123, 61),
+75: Vector2(123, 93),
+76: Vector2(123, 125),
+77: Vector2(123, 157),
+78: Vector2(155, 157),
+[TODAS LAS CELDAS 32x32 DE LA IMAGEN]
+celda(-1,-1): Vector2(3,5)
+celda(0,-1): Vector2(35,5)
+celda(1,-1): Vector2(67,5)
+celda(2,-1): Vector2(99,5)
+celda(3,-1): Vector2(131,5)
+celda(4,-1): Vector2(163,5)
+celda(-1,0): Vector2(3,37)
+celda(0,0): Vector2(35,37)
+celda(1,0): Vector2(67,37)
+celda(2,0): Vector2(99,37)
+celda(3,0): Vector2(131,37)
+celda(4,0): Vector2(163,37)
+celda(-1,1): Vector2(3,69)
+celda(0,1): Vector2(35,69)
+celda(1,1): Vector2(67,69)
+celda(2,1): Vector2(99,69)
+celda(3,1): Vector2(131,69)
+celda(4,1): Vector2(163,69)
+celda(-1,2): Vector2(3,101)
+celda(0,2): Vector2(35,101)
+celda(1,2): Vector2(67,101)
+celda(2,2): Vector2(99,101)
+celda(3,2): Vector2(131,101)
+celda(4,2): Vector2(163,101)
+celda(-1,3): Vector2(3,133)
+celda(0,3): Vector2(35,133)
+celda(1,3): Vector2(67,133)
+celda(2,3): Vector2(99,133)
+celda(3,3): Vector2(131,133)
+celda(4,3): Vector2(163,133)
+celda(-1,4): Vector2(3,165)
+celda(0,4): Vector2(35,165)
+celda(1,4): Vector2(67,165)
+celda(2,4): Vector2(99,165)
+celda(3,4): Vector2(131,165)
+celda(4,4): Vector2(163,165)
+
+[PLANTA 2: Biblioteca] celda=32x32 offset=(19,20)
+[HABITACIONES]
+100: Vector2(155, 28),
+101: Vector2(123, 28),
+102: Vector2(59, 28),
+103: Vector2(27, 28),
+104: Vector2(123, 60),
+105: Vector2(91, 60),
+106: Vector2(59, 60),
+107: Vector2(123, 92),
+108: Vector2(59, 92),
+109: Vector2(123, 124),
+110: Vector2(91, 124),
+111: Vector2(59, 124),
+112: Vector2(155, 156),
+113: Vector2(123, 156),
+114: Vector2(59, 156),
+115: Vector2(27, 156),
+[TODAS LAS CELDAS 32x32 DE LA IMAGEN]
+celda(-1,-1): Vector2(3,4)
+celda(0,-1): Vector2(35,4)
+celda(1,-1): Vector2(67,4)
+celda(2,-1): Vector2(99,4)
+celda(3,-1): Vector2(131,4)
+celda(4,-1): Vector2(163,4)
+celda(-1,0): Vector2(3,36)
+celda(0,0): Vector2(35,36)
+celda(1,0): Vector2(67,36)
+celda(2,0): Vector2(99,36)
+celda(3,0): Vector2(131,36)
+celda(4,0): Vector2(163,36)
+celda(-1,1): Vector2(3,68)
+celda(0,1): Vector2(35,68)
+celda(1,1): Vector2(67,68)
+celda(2,1): Vector2(99,68)
+celda(3,1): Vector2(131,68)
+celda(4,1): Vector2(163,68)
+celda(-1,2): Vector2(3,100)
+celda(0,2): Vector2(35,100)
+celda(1,2): Vector2(67,100)
+celda(2,2): Vector2(99,100)
+celda(3,2): Vector2(131,100)
+celda(4,2): Vector2(163,100)
+celda(-1,3): Vector2(3,132)
+celda(0,3): Vector2(35,132)
+celda(1,3): Vector2(67,132)
+celda(2,3): Vector2(99,132)
+celda(3,3): Vector2(131,132)
+celda(4,3): Vector2(163,132)
+celda(-1,4): Vector2(3,164)
+celda(0,4): Vector2(35,164)
+celda(1,4): Vector2(67,164)
+celda(2,4): Vector2(99,164)
+celda(3,4): Vector2(131,164)
+celda(4,4): Vector2(163,164)

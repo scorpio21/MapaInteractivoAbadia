@@ -1,0 +1,26 @@
+{
+  "cell_sizes": [
+    16,
+    32,
+    32
+  ],
+  "floor_names": [
+    "Iglesia",
+    "Scriptorium",
+    "Biblioteca"
+  ],
+  "offsets": [
+    {
+      "x": 4,
+      "y": 4
+    },
+    {
+      "x": 19,
+      "y": 21
+    },
+    {
+      "x": 19,
+      "y": 20
+    }
+  ]
+}
