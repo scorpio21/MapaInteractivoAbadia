@@ -1,6 +1,6 @@
 # Análisis técnico — Visor La Abadía del Crimen en Godot
 
-**Actualizado al estado probado de v1.1.5.** Este informe revisa el análisis anterior sobre el desacuerdo entre habitaciones y describe cómo se resolvió la reproducción del visor web.
+**Actualizado al estado validado de v1.1.6 (14-11-2026).** Este informe revisa el análisis anterior sobre el desacuerdo entre habitaciones y describe cómo se resolvió la reproducción del visor web.
 
 ## 1. Problema original: habitación seleccionada ≠ escena esperada
 
@@ -66,7 +66,7 @@ La prueba real del usuario de `test_abadia_screen_generator.gd` en Godot 4.7.2 .
 | Marco ausente | Borde de todo el lienzo | Marco blanco 16×20 desde celda `(8,8)` en área extendida. |
 | Cambio GRH/ORIGINAL pequeño | Ambos motores compartían zoom 1.0 | Zoom independiente y escala limitada al área visible (v1.1.5). |
 
-El usuario confirmó que la v1.1.5 funciona. No se debe declarar comprobada la totalidad de las habitaciones, tilesets y mapas por esa sola prueba.
+El usuario confirmó que la v1.1.5 funciona y posteriormente verificó la corrección de F3 y las pruebas de la v1.1.6. No se debe declarar comprobada visualmente la totalidad de habitaciones y combinaciones de gráficos/mapas.
 
 ## 5. Semántica precisa de los controles
 
@@ -78,7 +78,26 @@ El usuario confirmó que la v1.1.5 funciona. No se debe declarar comprobada la t
 
 **Gráficos:** Amstrad CPC, Amstrad CPC noche, MSX, MSX2 Remake, PC CGA, Remake PC, ZX Spectrum. **Mapa:** Original CPC, MSX, Reducido (cinta CPC). Hubo una etiqueta equivocada «Original CPC» en Gráficos, corregida durante el trabajo: son selectores independientes.
 
-## 6. Elementos aún no completamente verificados
+## 6. Validación adicional en v1.1.6
+
+La suite se reorganizó en **`scripts/Test/`**, con seis scripts GDScript y sus archivos `.gd.uid`. Comandos históricos que usan `res://scripts/test_*.gd` deben actualizarse a `res://scripts/Test/test_*.gd`.
+
+| Prueba | Resultado documentado |
+| --- | --- |
+| `test_regresion_v07.gd` | `REGRESION V0.7 OK` tras el traslado |
+| `test_regresion_v116.gd` | **21/21** comprobaciones superadas tras el traslado |
+| `test_seleccion_93_v116.gd` | **93 habitaciones**, **0 fallos** tras el traslado |
+| `test_abadia_screen_generator.gd` | `RESULTADO: OK` tras el traslado |
+| `test_issue3_v116.gd` | **18/18** antes del traslado; repetir ejecución en la nueva ruta |
+| `test_room_renderer.gd` | Incluido, sin resultado reciente confirmado |
+
+En el **issue #3**, `test_issue3_v116.gd` comprobó la existencia de los siete atlas, la carga de `original.ogg`, tres `.map` y la habitación **61** en modos normal **16×20** y extendido **32×32**. `3d_cpc.map` y `3d.map` dieron **26 elementos**, checksum normal **30453** y extendido **34797**. `3d_cpc_cinta.map` dio **21 elementos**, checksums **28902** y **32900**. Los atlas cargables no significan que todas sus combinaciones se hayan comparado visualmente. El usuario también confirmó visualmente la habitación 61 y el comportamiento del control de música.
+
+El problema F3 no era el intérprete: el controlador de teclado no recibía consistentemente el evento desde `_unhandled_key_input` con los controles de interfaz. Tras corregir la captura de F3 en `abadia_renderer.gd`, el usuario confirmó los mensajes de alternancia en consola y **un marco blanco visible en la celda seleccionada al hacer clic en GRH**. La superposición del diagnóstico GRH no se dibuja en modo ORIGINAL y puede no mostrar marcas amarillas si no hay GRH fuera de límites.
+
+En GitHub los issues **#1 (diagnósticos), #2 (regresión) y #3 (motor ORIGINAL/mapas)** constan **cerrados como Completed**. El cierre de issues no equivale por sí mismo a haber etiquetado o publicado una release v1.1.6.
+
+## 7. Elementos aún no completamente verificados
 
 - Correspondencia visual de las **116 habitaciones** y todas las opciones de los tres `.map`.
 - Los siete atlas combinados con cada mapa, incluido el modo nocturno.
@@ -86,19 +105,19 @@ El usuario confirmó que la v1.1.5 funciona. No se debe declarar comprobada la t
 - Comportamiento de UI al alternar repetidamente ORIGINAL ↔ GRH.
 - Código heredado de prototipos de juego (`Jugador`, `scripts.abs`, IA de monjes) que no forma parte de la ruta verificada del visor.
 
-## 7. Recomendaciones para próximos cambios
+## 8. Recomendaciones para próximos cambios
 
-1. Conservar una copia/tag del estado **v1.1.5** y nunca sobrescribirlo con variantes viejas de `main.gd`.
+1. Consolidar mediante commit/tag la **v1.1.6** una vez comprobados los tests desde `scripts/Test/`; conservar la v1.1.5 como punto de retorno y no sobrescribir el `main.gd` con variantes antiguas.
 2. Crear una matriz de pruebas reproducibles, por ejemplo habitaciones 23/39 (Iglesia), 69/77 (Scriptorium), 100/103 (Biblioteca), con cada tileset y mapa.
 3. Validar capturas del visor web frente a Godot en vista normal y extendida, con 0/N, 15/N, 22/N y N/N donde corresponda.
 4. Desacoplar diagnóstico y datos de rendering sin alterar el orden de construcciones verificado.
 5. Limpiar módulos duplicados solo tras comprobar dependencias y mantener una ruta de reversión.
 
-## 8. Referencias del proyecto
+## 9. Referencias del proyecto
 
 - JavaScript del visor aportado: `index-7uqyKgKQ.js` (subido originalmente con extensión `.java`).
 - Binarios originales: `bloques.bin`, `3d_cpc.map`, `3d.map`, `3d_cpc_cinta.map`.
-- Scripts principales: `main.gd`, `mapa_abadia.gd`, `abadia_renderer.gd`, `abadia_screen_generator.gd`, `test_abadia_screen_generator.gd`.
+- Scripts principales: `main.gd`, `mapa_abadia.gd`, `abadia_renderer.gd`, `abadia_screen_generator.gd`, `scripts/Test/test_abadia_screen_generator.gd` (más cinco tests en `scripts/Test/`).
 - Integración C#: `AbadiaMapData/`, `RoomDataBridge.cs`, `data/habitaciones.json`.
 - Visor de comparación: https://visor.abadiadelcrimenextensum.com/
 

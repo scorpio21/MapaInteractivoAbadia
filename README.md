@@ -1,10 +1,10 @@
 # MapainteractivoAbadia — Visor de La Abadía del Crimen
 
-**Versión funcional de referencia: v1.1.5** · **Godot 4.7.2 .NET (Mono)** · **.NET 8**
+**Versión validada: v1.1.6 (pendiente de commit/tag de consolidación)** · **Godot 4.7.2 .NET (Mono)** · **.NET 8**
 
 Proyecto de recreación del [visor de habitaciones de La Abadía del Crimen Extensum](https://visor.abadiadelcrimenextensum.com/) en Godot, con selección mediante minimapa, renderizado isométrico y reproducción del orden de construcción arquitectónica del visor web.
 
-> **Alcance de esta documentación:** el **visor de habitaciones** que se ha probado durante las versiones v0.6–v1.1.5. El repositorio también ha contenido prototipos de juego completo (`Jugador`, `MapaPisos`, `MonjeIA`, `scripts.abs`, etc.). Esos módulos se consideran **experimentales o heredados**, no parte de la ruta principal verificada del visor. No deben eliminarse sin revisar sus dependencias.
+> **Alcance de esta documentación:** el **visor de habitaciones** que se ha probado durante las versiones v0.6–v1.1.6. El repositorio también ha contenido prototipos de juego completo (`Jugador`, `MapaPisos`, `MonjeIA`, `scripts.abs`, etc.). Esos módulos se consideran **experimentales o heredados**, no parte de la ruta principal verificada del visor. No deben eliminarse sin revisar sus dependencias.
 
 ## Estado comprobado
 
@@ -17,9 +17,12 @@ Proyecto de recreación del [visor de habitaciones de La Abadía del Crimen Exte
 - ✅ Área extendida **32×32**, vista normal **16×20**, desplazamiento por arrastre y marco blanco de referencia cuando corresponde.
 - ✅ Corrección del orden de coordenadas de tiles dentro del atlas; las pruebas visuales reportadas ya muestran la imagen original correctamente.
 - ✅ Zoom separado por motor en **v1.1.5**; cambio entre GRH y ORIGINAL probado satisfactoriamente.
-- ✅ Controles de gráficos y mapas presentes, con archivos específicos; **pendiente validar sistemáticamente las siete combinaciones de gráficos y los tres mapas** en todas las habitaciones.
+- ✅ Siete atlas y tres archivos de mapa comprobados mediante pruebas de carga; habitación 61 generada correctamente en vista normal y extendida para los tres mapas.
+- ✅ Música original cargable; el usuario confirmó reproducción y detención desde el control.
+- ✅ Diagnóstico F3 funcional en GRH: mensajes de activación/desactivación y selección de celda con marco blanco visible.
+- ✅ Suite de pruebas trasladada a `scripts/Test/`; regresión v1.1.6 (21/21), selección de 93 habitaciones (0 errores), generador original (OK) y verificación issue #3 (18/18, ejecutada antes de mover los scripts).
 
-**Importante:** la coincidencia visual se ha confirmado en pruebas concretas (en especial la habitación 77), **no** en las 116 habitaciones ni en todas las combinaciones. La v1.1.5 se considera la última versión que el usuario confirmó funcionando.
+**Alcance de validación:** el usuario confirmó la coincidencia visual de las habitaciones 77 y 61 en las configuraciones probadas. La selección exacta se comprobó para **93 habitaciones registradas en la DLL**; no implica haber comparado visualmente todas las habitaciones ni las 7×3 combinaciones de gráficos/mapas. La v1.1.5 fue la base estable; la v1.1.6 reúne el arreglo F3 y los tests.
 
 ## Requisitos y puesta en marcha
 
@@ -45,6 +48,7 @@ El ejecutable y la ruta son los utilizados en las pruebas del usuario; ajústalo
 | `scripts/abadia_screen_generator.gd` | Interpreta `bloques.bin` y `3d*.map` para generar construcciones del visor original. |
 | `scripts/abadia_data.gd` | Lectura de los datos gráficos binarios usados por GRH. |
 | `scripts/abadia_diagnostics.gd` | Comprobaciones gráficas separadas del dibujo habitual. |
+| `scripts/Test/` | Seis tests GDScript de regresión, selección y generación. |
 | `AbadiaMapData/` | Biblioteca C# .NET 8 con posiciones y búsqueda de habitaciones. |
 | `scripts/RoomDataBridge.cs` | Puente Godot ↔ biblioteca C#. |
 | `data/habitaciones.json` | Coordenadas y datos consultados por la DLL. |
@@ -70,13 +74,14 @@ La identificación de la habitación mediante la DLL **no debe confundirse** con
 - **Mostrar borde**: en área extendida, rectángulo de referencia blanco 16×20 con inicio lógico (8,8).
 - **Motor**: alternar ORIGINAL / GRH para comparación.
 - **Zoom**: ajuste independiente de los dos motores, con límites según el área disponible.
+- **F3 (en GRH)**: alterna el diagnóstico; con F3 activo, al pulsar una celda se destaca con marco blanco y aparece información en consola. En ORIGINAL no se aplica el overlay GRH.
 
 ## Validaciones del generador original
 
 La prueba ejecutada por el usuario fue:
 
 ```powershell
-& 'K:\Godot_v4.6.1\Godot_v4.7.2-stable_mono_win64.exe' --headless --path . --script res://scripts/test_abadia_screen_generator.gd
+& 'K:\Godot_v4.6.1\Godot_v4.7.2-stable_mono_win64.exe' --headless --path . --script res://scripts/Test/test_abadia_screen_generator.gd
 ```
 
 Resultados comunicados: **RESULTADO: OK**. Para `3d_cpc.map`, habitación 77: **28 elementos**, con sumas de comprobación para 0, 15, 22 y 28 elementos **0, 14742, 22764 y 32201**. También coincidieron los totales de las habitaciones 39, 69 y 103 para los tres mapas de prueba.
@@ -88,10 +93,37 @@ Resultados comunicados: **RESULTADO: OK**. Para `3d_cpc.map`, habitación 77: **
 | 77 | 28 | 28 | 25 |
 | 103 | 26 | 26 | 26 |
 
+## Pruebas reproducibles — v1.1.6
+
+Los seis scripts de prueba están en `scripts/Test/` (con sus `.gd.uid`); no deben confundirse con los scripts de producción.
+
+```powershell
+cd K:\Proyectos\mapainteractivo-abadia
+dotnet build MapainteractivoAbadia.csproj
+$Godot = 'K:\Godot_v4.6.1\Godot_v4.7.2-stable_mono_win64.exe'
+& $Godot --headless --path . --script res://scripts/Test/test_regresion_v07.gd
+& $Godot --headless --path . --script res://scripts/Test/test_regresion_v116.gd
+& $Godot --headless --path . --script res://scripts/Test/test_seleccion_93_v116.gd
+& $Godot --headless --path . --script res://scripts/Test/test_abadia_screen_generator.gd
+& $Godot --headless --path . --script res://scripts/Test/test_issue3_v116.gd
+& $Godot --headless --path . --script res://scripts/Test/test_room_renderer.gd
+```
+
+| Test | Resultado comunicado |
+| --- | --- |
+| `test_regresion_v07.gd` | `REGRESION V0.7 OK` |
+| `test_regresion_v116.gd` | 21/21 comprobaciones |
+| `test_seleccion_93_v116.gd` | 93 habitaciones, 0 fallos |
+| `test_abadia_screen_generator.gd` | `RESULTADO: OK` para tres mapas y checksums de habitación 77 |
+| `test_issue3_v116.gd` | 18/18, ejecutado antes del traslado a `scripts/Test/` |
+| `test_room_renderer.gd` | Incluido en la carpeta, sin resultado confirmado en esta sesión |
+
+Los issues [#1](https://github.com/scorpio21/MapaInteractivoAbadia/issues/1), [#2](https://github.com/scorpio21/MapaInteractivoAbadia/issues/2) y [#3](https://github.com/scorpio21/MapaInteractivoAbadia/issues/3) constan cerrados como **Completed**. Tras reorganizar, se reejecutaron satisfactoriamente v0.7, v1.1.6, selección 93 y generador original; conviene repetir el test de issue #3 desde su nueva ruta antes del commit.
+
 ## Prioridades siguientes
 
-1. Guardar una copia/tag de la **v1.1.5** antes de cambios de renderizado.
-2. Verificar los **siete atlas gráficos** y **tres mapas** en las tres plantas, anotando habitación, configuración y diferencias visuales.
+1. Consolidar en Git la **v1.1.6** y crear etiqueta solo después de verificar el estado final de los archivos.
+2. Ampliar las comparaciones visuales de los **siete atlas** y **tres mapas** en las tres plantas (ya se ha comprobado la carga de recursos y la habitación 61).
 3. Revisar el aspecto de la ventana y el centrado inicial frente al visor web, sin alterar el generador comprobado.
 4. Validar bordes, arrastre y escalado tras cambios de habitación/motor y al redimensionar ventana.
 5. Solo después, evaluar eliminación del código GRH provisional y limpieza de módulos heredados.
