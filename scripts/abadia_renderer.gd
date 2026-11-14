@@ -351,10 +351,18 @@ func _draw_original_screen() -> void:
 				var tile_id: int = int(buffer[index])
 				if tile_id == 0:
 					continue
-				var src := Rect2(float((tile_id & 15) * tile_w), float((tile_id >> 4) * tile_h), float(tile_w), float(tile_h))
+				# Formato original del visor: nibble alto = columna X; nibble bajo = fila Y.
+				var src := Rect2(float((tile_id >> 4) * tile_w), float((tile_id & 15) * tile_h), float(tile_w), float(tile_h))
 				draw_texture_rect_region(original_tileset, dest, src)
+	# Marco de la vista normal (16x20) dentro del área extendida (32x32).
+	# Réplica de s(ctx, tile_width, tile_height) del visor JavaScript:
+	# strokeRect(8*w, 8*h, 16*w, 20*h), blanco al 80%, grosor 2.
 	if show_border and original_extended:
-		draw_rect(Rect2(Vector2.ZERO, image_size), Color(0.68, 0.68, 0.68, 0.8), false, 1.0)
+		var normal_view_rect := Rect2(
+			Vector2(8.0 * float(tile_w), 8.0 * float(tile_h)),
+			Vector2(16.0 * float(tile_w), 20.0 * float(tile_h))
+		)
+		draw_rect(normal_view_rect, Color(1.0, 1.0, 1.0, 0.8), false, 2.0)
 
 # ============================================================
 # RENDER DE HABITACIÓN

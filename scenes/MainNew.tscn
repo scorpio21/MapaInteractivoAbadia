@@ -1,165 +1,189 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene format=3 uid="uid://dotrhetsp88ss"]
 
-[ext_resource type="Script" path="res://scripts/RoomRenderer.gd" id="1_rr"]
-[ext_resource type="Script" path="res://scripts/UI.gd" id="2_ui"]
+[ext_resource type="Script" uid="uid://cv3lxxwqhkqd4" path="res://scripts/RoomRenderer.gd" id="1_rr"]
 [ext_resource type="PackedScene" path="res://scenes/Jugador.tscn" id="3_player"]
-[ext_resource type="Script" path="res://scripts/main.gd" id="4_main"]
-[ext_resource type="Script" path="res://scripts/FloorPlan.gd" id="5_fp"]
-[ext_resource type="AudioStream" path="res://assets/sound/bgm/original.ogg" id="6_bgm"]
+[ext_resource type="Script" uid="uid://b0rbs47ohytu0" path="res://scripts/main.gd" id="4_main"]
+[ext_resource type="Script" uid="uid://67sbx1224crq" path="res://scripts/FloorPlan.gd" id="5_fp"]
+[ext_resource type="AudioStream" uid="uid://bm61nmogltfhy" path="res://assets/sound/bgm/original.ogg" id="6_bgm"]
 
-[node name="Main" type="VBoxContainer"]
-script = ExtResource("4_main")
+[node name="Main" type="VBoxContainer" unique_id=2062783195]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("4_main")
 
-[node name="HSplit" type="HSplitContainer" parent="."]
+[node name="HSplit" type="HSplitContainer" parent="." unique_id=1817333156]
+layout_mode = 2
 size_flags_vertical = 3
+split_offsets = PackedInt32Array(900)
 split_offset = 900
 
-[node name="LeftPanel" type="VBoxContainer" parent="HSplit"]
+[node name="LeftPanel" type="VBoxContainer" parent="HSplit" unique_id=2034684459]
+layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="SubViewportContainer" type="SubViewportContainer" parent="HSplit/LeftPanel"]
+[node name="SubViewportContainer" type="SubViewportContainer" parent="HSplit/LeftPanel" unique_id=570646707]
+layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 stretch = true
-stretch_mode = 0
-stretch_aspect = 0
 
-[node name="SubViewport" type="SubViewport" parent="HSplit/LeftPanel/SubViewportContainer"]
-size = Vector2(256, 160)
-render_target_update_mode = 3
-transparent_bg = false
+[node name="SubViewport" type="SubViewport" parent="HSplit/LeftPanel/SubViewportContainer" unique_id=1656248982]
+handle_input_locally = false
+size = Vector2i(781, 584)
+render_target_update_mode = 4
 
-[node name="RoomTiles" type="Node2D" parent="HSplit/LeftPanel/SubViewportContainer/SubViewport"]
+[node name="RoomTiles" type="Node2D" parent="HSplit/LeftPanel/SubViewportContainer/SubViewport" unique_id=145442979]
 script = ExtResource("1_rr")
 
-[node name="Player" parent="HSplit/LeftPanel/SubViewportContainer/SubViewport" instance=ExtResource("3_player")]
+[node name="Player" parent="HSplit/LeftPanel/SubViewportContainer/SubViewport" unique_id=2001481713 instance=ExtResource("3_player")]
 position = Vector2(128, 64)
 
-[node name="RightPanel" type="VBoxContainer" parent="HSplit"]
+[node name="RightPanel" type="VBoxContainer" parent="HSplit" unique_id=1612452137]
 custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="FloorPlan" type="Control" parent="HSplit/RightPanel"]
+[node name="FloorPlan" type="Control" parent="HSplit/RightPanel" unique_id=1453530377]
 custom_minimum_size = Vector2(280, 224)
+layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("5_fp")
 
-[node name="Controls" type="GridContainer" parent="HSplit/RightPanel"]
+[node name="Controls" type="GridContainer" parent="HSplit/RightPanel" unique_id=1519295463]
 custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
 size_flags_horizontal = 3
 columns = 2
 
-[node name="PlantaLabel" type="Label" parent="HSplit/RightPanel/Controls"]
+[node name="PlantaLabel" type="Label" parent="HSplit/RightPanel/Controls" unique_id=1393348057]
+layout_mode = 2
 text = "Planta:"
 
-[node name="FloorSelect" type="OptionButton" parent="HSplit/RightPanel/Controls"]
+[node name="FloorSelect" type="OptionButton" parent="HSplit/RightPanel/Controls" unique_id=1482575630]
 custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="GraficosLabel" type="Label" parent="HSplit/RightPanel/Controls"]
+[node name="GraficosLabel" type="Label" parent="HSplit/RightPanel/Controls" unique_id=657241267]
+layout_mode = 2
 text = "Gráficos:"
 
-[node name="TilesetSelect" type="OptionButton" parent="HSplit/RightPanel/Controls"]
+[node name="TilesetSelect" type="OptionButton" parent="HSplit/RightPanel/Controls" unique_id=1964087622]
 custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="MapaLabel" type="Label" parent="HSplit/RightPanel/Controls"]
+[node name="MapaLabel" type="Label" parent="HSplit/RightPanel/Controls" unique_id=1812227814]
+layout_mode = 2
 text = "Mapa:"
 
-[node name="MapSelect" type="OptionButton" parent="HSplit/RightPanel/Controls"]
+[node name="MapSelect" type="OptionButton" parent="HSplit/RightPanel/Controls" unique_id=1788976794]
 custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="HabitacionLabel" type="Label" parent="HSplit/RightPanel/Controls"]
+[node name="HabitacionLabel" type="Label" parent="HSplit/RightPanel/Controls" unique_id=1819888264]
+layout_mode = 2
 text = "Habitación:"
 
-[node name="RoomInput" type="LineEdit" parent="HSplit/RightPanel/Controls"]
+[node name="RoomInput" type="LineEdit" parent="HSplit/RightPanel/Controls" unique_id=1174194764]
 custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "0-115"
 
-[node name="LuzLabel" type="Label" parent="HSplit/RightPanel/Controls"]
+[node name="LuzLabel" type="Label" parent="HSplit/RightPanel/Controls" unique_id=366756990]
+layout_mode = 2
 text = "Iluminación:"
 
-[node name="LightingSelect" type="OptionButton" parent="HSplit/RightPanel/Controls"]
+[node name="LightingSelect" type="OptionButton" parent="HSplit/RightPanel/Controls" unique_id=211452613]
 custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ExtendedCheck" type="CheckBox" parent="HSplit/RightPanel/Controls"]
+[node name="ExtendedCheck" type="CheckBox" parent="HSplit/RightPanel/Controls" unique_id=386020425]
 custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Área extendida"
+
+[node name="Empty1" type="Control" parent="HSplit/RightPanel/Controls" unique_id=935469861]
+layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Empty1" type="Control" parent="HSplit/RightPanel/Controls"]
-custom_minimum_size = Vector2(0, 0)
-size_flags_horizontal = 3
-
-[node name="BorderCheck" type="CheckBox" parent="HSplit/RightPanel/Controls"]
+[node name="BorderCheck" type="CheckBox" parent="HSplit/RightPanel/Controls" unique_id=1041165228]
 custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
 button_pressed = true
 text = "Mostrar borde"
+
+[node name="Empty2" type="Control" parent="HSplit/RightPanel/Controls" unique_id=1406165916]
+layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Empty2" type="Control" parent="HSplit/RightPanel/Controls"]
-custom_minimum_size = Vector2(0, 0)
-size_flags_horizontal = 3
-
-[node name="ProgressiveCheck" type="CheckBox" parent="HSplit/RightPanel/Controls"]
+[node name="ProgressiveCheck" type="CheckBox" parent="HSplit/RightPanel/Controls" unique_id=1038872391]
 custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Pintado progresivo"
+
+[node name="Empty3" type="Control" parent="HSplit/RightPanel/Controls" unique_id=193437571]
+layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Empty3" type="Control" parent="HSplit/RightPanel/Controls"]
-custom_minimum_size = Vector2(0, 0)
-size_flags_horizontal = 3
-
-[node name="MusicCheck" type="CheckBox" parent="HSplit/RightPanel/Controls"]
+[node name="MusicCheck" type="CheckBox" parent="HSplit/RightPanel/Controls" unique_id=749570022]
 custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Música"
+
+[node name="Empty4" type="Control" parent="HSplit/RightPanel/Controls" unique_id=634791850]
+layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Empty4" type="Control" parent="HSplit/RightPanel/Controls"]
-custom_minimum_size = Vector2(0, 0)
-size_flags_horizontal = 3
-
-[node name="Info" type="Label" parent="HSplit/RightPanel"]
+[node name="Info" type="Label" parent="HSplit/RightPanel" unique_id=300461007]
 custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
 size_flags_horizontal = 3
 text = "Habitación: 0 — Elementos: 0 — Iglesia"
 
-[node name="BottomBar" type="VBoxContainer" parent="."]
+[node name="BottomBar" type="VBoxContainer" parent="." unique_id=1662227639]
 custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
 
-[node name="ElementSlider" type="HBoxContainer" parent="BottomBar"]
+[node name="ElementSlider" type="HBoxContainer" parent="BottomBar" unique_id=2070561082]
 custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
 
-[node name="SliderLabel" type="Label" parent="BottomBar/ElementSlider"]
+[node name="SliderLabel" type="Label" parent="BottomBar/ElementSlider" unique_id=1454894367]
+layout_mode = 2
 text = "Elementos"
 
-[node name="Slider" type="HSlider" parent="BottomBar/ElementSlider"]
+[node name="Slider" type="HSlider" parent="BottomBar/ElementSlider" unique_id=1910319837]
 custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
 size_flags_horizontal = 3
-min_value = 0.0
 max_value = 32.0
 value = 32.0
 
-[node name="SliderValue" type="Label" parent="BottomBar/ElementSlider"]
+[node name="SliderValue" type="Label" parent="BottomBar/ElementSlider" unique_id=950980285]
+layout_mode = 2
 text = "32/32"
 
-[node name="StatusBar" type="Label" parent="BottomBar"]
+[node name="StatusBar" type="Label" parent="BottomBar" unique_id=1803152361]
+layout_mode = 2
 size_flags_horizontal = 3
 text = "Habitación: 0 — Elementos: 0 — Iglesia"
 
-[node name="UI" type="CanvasLayer" parent="."]
+[node name="UI" type="CanvasLayer" parent="." unique_id=1037183261]
 layer = 10
 visible = false
 
-[node name="Audio" type="AudioStreamPlayer" parent="."]
+[node name="Audio" type="AudioStreamPlayer" parent="." unique_id=2095697864]
 stream = ExtResource("6_bgm")

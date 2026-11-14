@@ -34,7 +34,7 @@ const MAP_PATHS: Array[String] = [
 	"res://assets/3d_cpc_cinta.map"
 ]
 const MUSIC_PATH := "res://assets/original.ogg"
-const DEFAULT_TILESET: int = 0
+const DEFAULT_TILESET: int = 5
 const DEFAULT_MAP: int = 0
 const HABITACIONES_PATH := "res://data/habitaciones.bin"
 const ALTURAS_PATH := "res://data/alturas.bin"
@@ -52,11 +52,21 @@ const OUTER_MARGIN: float = 4.0
 
 # Zoom solicitado por el usuario. El zoom real se limita automáticamente
 # al espacio disponible para que nunca se corte el render.
-var requested_zoom: float = 5.0
+var requested_zoom: float = 1.0
+# Escala propia del motor GRH: su superficie lógica es solo 320x208.
+# Se conserva independiente del zoom del motor ORIGINAL.
+var grh_requested_zoom: float = 3.0
 var current_zoom: float = 1.0
 
 var data: AbadiaData
 var renderer: AbadiaRenderer
+# Región recortada: evita que la vista extendida invada minimapa o barra.
+var render_area: Control
+var _dragging_extended: bool = false
+var _drag_mouse_button: int = -1
+var _last_mouse_global: Vector2 = Vector2.ZERO
+var _pan_offset: Vector2 = Vector2.ZERO
+var _center_extended_on_next_layout: bool = false
 var mapa: MapaAbadia
 var music_player: AudioStreamPlayer
 var active_map_data: PackedByteArray
@@ -84,6 +94,8 @@ func _ready() -> void:
 	_create_map()
 	_create_audio()
 	_create_elements_footer()
+	# Arrancar directamente con el motor arquitectónico, sin simular un clic.
+	_activate_original_engine()
 	_connect_viewport_resize()
 	_apply_layout()
 
@@ -125,9 +137,17 @@ func _create_renderer() -> void:
 		return
 
 
+	# La región Control recorta únicamente el escenario, nunca el panel derecho.
+	render_area = Control.new()
+	render_area.name = "AreaRenderRecortada"
+	render_area.clip_contents = true
+	render_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(render_area)
+	render_area.gui_input.connect(_on_render_area_gui_input)
+
 	renderer = AbadiaRenderer.new()
 	renderer.name = "AbadiaRenderer"
-	add_child(renderer)
+	render_area.add_child(renderer)
 
 	renderer.setup(
 		tiles,
@@ -206,15 +226,40 @@ func _on_map_changed(index: int) -> void:
 		renderer.set_original_map_bytes(active_map_data)
 		_update_element_footer()
 
-func _on_original_mode_pressed() -> void:
+func _activate_original_engine() -> void:
 	if renderer == null or original_generator == null:
+		push_error("Motor ORIGINAL: no se ha creado el renderizador o el generador")
 		return
-	original_enabled = not original_enabled
-	renderer.set_original_mode(original_enabled)
+	if renderer.original_tileset == null:
+		push_error("Motor ORIGINAL: falta el atlas de gráficos; revisa res://assets")
+		return
+	renderer.set_original_mode(true)
 	original_enabled = renderer.original_mode
-	original_mode_button.text = "Motor: ORIGINAL" if original_enabled else "Motor: GRH"
+	if not original_enabled:
+		push_error("No se pudo activar el motor ORIGINAL: revisa bloques.bin y 3d_cpc.map")
+	original_mode_button.text = "Motor: ORIGINAL" if original_enabled else "Motor: GRH (ERROR)"
+	_dragging_extended = false
+	_drag_mouse_button = -1
 	_apply_layout()
 	_update_element_footer()
+
+
+func _on_original_mode_pressed() -> void:
+	if renderer == null:
+		return
+	if renderer.original_mode:
+		renderer.set_original_mode(false)
+		original_enabled = false
+		original_mode_button.text = "Motor: GRH"
+	else:
+		_activate_original_engine()
+		return
+	_dragging_extended = false
+	_drag_mouse_button = -1
+	_center_extended_on_next_layout = false
+	_apply_layout()
+	_update_element_footer()
+
 
 func _on_border_changed(enabled: bool) -> void:
 	if renderer != null:
@@ -226,8 +271,57 @@ func _on_progressive_changed(enabled: bool) -> void:
 
 func _on_extended_changed(enabled: bool) -> void:
 	if renderer != null:
+		_dragging_extended = false
+		_drag_mouse_button = -1
+		_center_extended_on_next_layout = enabled
 		renderer.set_original_extended(enabled)
 		_apply_layout()
+
+func _extended_pan_active() -> bool:
+	return renderer != null and renderer.original_mode and renderer.original_extended and render_area != null
+
+func _on_render_area_gui_input(event: InputEvent) -> void:
+	if not _extended_pan_active():
+		return
+	if event is InputEventMouseButton:
+		if event.pressed and (event.button_index == MOUSE_BUTTON_RIGHT or event.button_index == MOUSE_BUTTON_LEFT):
+			_dragging_extended = true
+			_drag_mouse_button = event.button_index
+			_last_mouse_global = get_viewport().get_mouse_position()
+			render_area.accept_event()
+
+func _input(event: InputEvent) -> void:
+	if not _dragging_extended:
+		return
+	if not _extended_pan_active():
+		_dragging_extended = false
+		_drag_mouse_button = -1
+		return
+	if event is InputEventMouseButton and event.button_index == _drag_mouse_button and not event.pressed:
+		_dragging_extended = false
+		_drag_mouse_button = -1
+	elif event is InputEventMouseMotion:
+		var global_mouse: Vector2 = get_viewport().get_mouse_position()
+		_pan_offset += global_mouse - _last_mouse_global
+		_last_mouse_global = global_mouse
+		_position_render_in_area()
+
+func _position_render_in_area() -> void:
+	if renderer == null or render_area == null:
+		return
+	var image_size: Vector2 = renderer.get_logical_render_size() * current_zoom
+	if _extended_pan_active():
+		# Evita zonas vacías en los bordes al arrastrar.
+		_pan_offset.x = clampf(_pan_offset.x,
+			minf(0.0, render_area.size.x - image_size.x),
+			maxf(0.0, render_area.size.x - image_size.x))
+		_pan_offset.y = clampf(_pan_offset.y,
+			minf(0.0, render_area.size.y - image_size.y),
+			maxf(0.0, render_area.size.y - image_size.y))
+		renderer.position = _pan_offset.round()
+	else:
+		# La vista normal sigue centrada y sin arrastre.
+		renderer.position = ((render_area.size - image_size) * 0.5).round()
 
 func _on_music_changed(enabled: bool) -> void:
 	if music_player == null:
@@ -401,35 +495,40 @@ func _apply_layout() -> void:
 	#    No deformamos X/Y y nunca cortamos el render.
 	# --------------------------------------------------------
 	var logical_size: Vector2 = renderer.get_logical_render_size()
-	var max_zoom_x: float = render_area_width / logical_size.x
-	var max_zoom_y: float = render_area_height / logical_size.y
+	var fit_size: Vector2 = logical_size
+	if _extended_pan_active():
+		# La escala extendida coincide con la vista normal (16x20),
+		# no reduce todo el lienzo 32x32 para que quepa en pantalla.
+		fit_size = Vector2(
+			logical_size.x * float(AbadiaScreenGenerator.BASE_WIDTH) / float(AbadiaScreenGenerator.EXTENDED_WIDTH),
+			logical_size.y * float(AbadiaScreenGenerator.BASE_HEIGHT) / float(AbadiaScreenGenerator.EXTENDED_HEIGHT)
+		)
+	var max_zoom_x: float = render_area_width / fit_size.x
+	var max_zoom_y: float = render_area_height / fit_size.y
 
 	var max_zoom: float = min(max_zoom_x, max_zoom_y)
 
 	# Modo extendido puede necesitar reducir la escala para caber.
 	max_zoom = max(max_zoom, 0.1)
 
-	current_zoom = min(requested_zoom, max_zoom)
+	var target_zoom: float = requested_zoom if renderer.original_mode else grh_requested_zoom
+	current_zoom = min(target_zoom, max_zoom)
 
 	renderer.set_zoom(current_zoom)
 
 	var rendered_size := logical_size * current_zoom
 
 	# --------------------------------------------------------
-	# 3. Centramos el render dentro de su zona izquierda.
+	# 3. Área visible fija y escenario interno desplazable.
 	# --------------------------------------------------------
-	var render_x: float = render_area_x + (
-		render_area_width - rendered_size.x
-	) * 0.5
-
-	var render_y: float = render_area_y + (
-		render_area_height - rendered_size.y
-	) * 0.5
-
-	renderer.position = Vector2(
-		round(render_x),
-		round(render_y)
-	)
+	render_area.position = Vector2(render_area_x, render_area_y)
+	render_area.size = Vector2(render_area_width, render_area_height)
+	render_area.mouse_filter = (Control.MOUSE_FILTER_STOP
+		if _extended_pan_active() else Control.MOUSE_FILTER_IGNORE)
+	if _extended_pan_active() and _center_extended_on_next_layout:
+		_pan_offset = (render_area.size - rendered_size) * 0.5
+		_center_extended_on_next_layout = false
+	_position_render_in_area()
 
 	# --------------------------------------------------------
 	# 4. Panel derecho.
@@ -496,35 +595,40 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			)
 
 		KEY_1:
-			requested_zoom = 1.0
+			_set_active_zoom(1.0)
 			_apply_layout()
 
 		KEY_2:
-			requested_zoom = 2.0
+			_set_active_zoom(2.0)
 			_apply_layout()
 
 		KEY_3:
-			requested_zoom = 3.0
+			_set_active_zoom(3.0)
 			_apply_layout()
 
 		KEY_4:
-			requested_zoom = 4.0
+			_set_active_zoom(4.0)
 			_apply_layout()
 
 		KEY_5:
-			requested_zoom = 5.0
+			_set_active_zoom(5.0)
 			_apply_layout()
 
 		KEY_PLUS, KEY_KP_ADD:
-			requested_zoom = min(
-				requested_zoom + 0.25,
-				8.0
-			)
+			_set_active_zoom(minf(_get_active_zoom() + 0.25, 8.0))
 			_apply_layout()
 
 		KEY_MINUS, KEY_KP_SUBTRACT:
-			requested_zoom = max(
-				requested_zoom - 0.25,
-				1.0
-			)
+			_set_active_zoom(maxf(_get_active_zoom() - 0.25, 1.0))
 			_apply_layout()
+
+
+func _get_active_zoom() -> float:
+	return requested_zoom if renderer != null and renderer.original_mode else grh_requested_zoom
+
+
+func _set_active_zoom(value: float) -> void:
+	if renderer != null and renderer.original_mode:
+		requested_zoom = value
+	else:
+		grh_requested_zoom = value
