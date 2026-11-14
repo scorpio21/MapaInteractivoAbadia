@@ -1,86 +1,106 @@
-# Mapa interactivo La Abadía del Crimen
+# MapainteractivoAbadia — Visor de La Abadía del Crimen
 
-Proyecto con **Godot Engine 4.7** que recrea el mapa isométrico del juego original *La Abadía del Crimen* (Paco Menéndez / UltraCaca, 1987). Renderizado tile-based con assets reales del juego original.
+**Versión funcional de referencia: v1.1.5** · **Godot 4.7.2 .NET (Mono)** · **.NET 8**
 
-## Estado actual
+Proyecto de recreación del [visor de habitaciones de La Abadía del Crimen Extensum](https://visor.abadiadelcrimenextensum.com/) en Godot, con selección mediante minimapa, renderizado isométrico y reproducción del orden de construcción arquitectónica del visor web.
 
-- ✅ Assets reales del juego: `tiles_day.png` (256 tiles 16×8), sprites de personajes, scripts.abs
-- ✅ Parser de `scripts.abs`: 113 scripts parseados e interpretados
-- ✅ Generación dinámica de tile buffers por habitación (32,207 sprites en piso 0)
-- ✅ Sistema de horas canónicas (autoload `Horario`)
-- ✅ Jugador con movimiento 2D y sprite de Guillermo
-- ⚠️ Rendering visual con bugs: superposición de habitaciones, áreas grises, checkerboard teal/negro
-- 🔲 Monjes con IA y patrullas
-- 🔲 Cambio de pisos
+> **Alcance de esta documentación:** el **visor de habitaciones** que se ha probado durante las versiones v0.6–v1.1.5. El repositorio también ha contenido prototipos de juego completo (`Jugador`, `MapaPisos`, `MonjeIA`, `scripts.abs`, etc.). Esos módulos se consideran **experimentales o heredados**, no parte de la ruta principal verificada del visor. No deben eliminarse sin revisar sus dependencias.
 
-## Requisitos
+## Estado comprobado
 
-- Godot Engine 4.7 (project.godot: `config_version=5`, renderer GLES3)
+- ✅ Godot **4.7.2.stable.mono.official** con el proyecto C# compilando mediante `dotnet build`.
+- ✅ `AbadiaMapData.dll` integrada con puente `RoomDataBridge.cs` y selección exacta por celdas en las tres plantas.
+- ✅ **Iglesia 16×16**; **Scriptorium y Biblioteca 32×32** en el minimapa.
+- ✅ Dos modos de renderizado: **ORIGINAL** (arquitectónico) y **GRH** (alternativo/de respaldo).
+- ✅ Generador arquitectónico `abadia_screen_generator.gd` contrastado con el JavaScript original: interpretación de `bloques.bin` y tres mapas `.map`.
+- ✅ Barra inferior **Elementos** y pintado progresivo por construcciones originales en modo ORIGINAL.
+- ✅ Área extendida **32×32**, vista normal **16×20**, desplazamiento por arrastre y marco blanco de referencia cuando corresponde.
+- ✅ Corrección del orden de coordenadas de tiles dentro del atlas; las pruebas visuales reportadas ya muestran la imagen original correctamente.
+- ✅ Zoom separado por motor en **v1.1.5**; cambio entre GRH y ORIGINAL probado satisfactoriamente.
+- ✅ Controles de gráficos y mapas presentes, con archivos específicos; **pendiente validar sistemáticamente las siete combinaciones de gráficos y los tres mapas** en todas las habitaciones.
 
-## Ejecución
+**Importante:** la coincidencia visual se ha confirmado en pruebas concretas (en especial la habitación 77), **no** en las 116 habitaciones ni en todas las combinaciones. La v1.1.5 se considera la última versión que el usuario confirmó funcionando.
 
-1. Abre el proyecto con Godot.
-2. La escena principal es `res://scenes/Main.tscn` (configurada en `project.godot`).
-3. Ejecuta el proyecto (F5).
+## Requisitos y puesta en marcha
 
-## Controles
+- Windows y **Godot 4.7.2 .NET** (`mono`), no el ejecutable estándar sin C#.
+- SDK **.NET 8**; en el equipo de desarrollo están disponibles también .NET 9 y 10.
+- Copia del proyecto en `K:\Proyectos\mapainteractivo-abadia`.
 
-| Acción | Tecla |
+```powershell
+cd K:\Proyectos\mapainteractivo-abadia
+dotnet build MapainteractivoAbadia.csproj
+& 'K:\Godot_v4.6.1\Godot_v4.7.2-stable_mono_win64.exe' --path .
+```
+
+El ejecutable y la ruta son los utilizados en las pruebas del usuario; ajústalos si cambian. También puedes abrir el proyecto en el editor Godot .NET y pulsar **F5**. No borres `.csproj`, `.sln` ni la referencia del proyecto a `AbadiaMapData`.
+
+## Arquitectura del visor
+
+| Pieza | Función |
 | --- | --- |
-| Mover el personaje | Flechas del teclado |
+| `scripts/main.gd` | Interfaz, selección de motor, zoom, área extendida, barra de elementos y opciones. |
+| `scripts/mapa_abadia.gd` | Panel de plantas, clics y navegación entre habitaciones. |
+| `scripts/abadia_renderer.gd` | Dibujo de tiles/capas en GRH y en ORIGINAL. |
+| `scripts/abadia_screen_generator.gd` | Interpreta `bloques.bin` y `3d*.map` para generar construcciones del visor original. |
+| `scripts/abadia_data.gd` | Lectura de los datos gráficos binarios usados por GRH. |
+| `scripts/abadia_diagnostics.gd` | Comprobaciones gráficas separadas del dibujo habitual. |
+| `AbadiaMapData/` | Biblioteca C# .NET 8 con posiciones y búsqueda de habitaciones. |
+| `scripts/RoomDataBridge.cs` | Puente Godot ↔ biblioteca C#. |
+| `data/habitaciones.json` | Coordenadas y datos consultados por la DLL. |
 
-## Estructura
+Los nombres reflejan los archivos integrados durante el desarrollo. Si se reorganiza el repositorio, actualizar también esta tabla.
 
+### Dos rutas de renderizado
+
+**ORIGINAL:** `bloques.bin` + `3d_cpc.map` / `3d.map` / `3d_cpc_cinta.map` → instrucciones arquitectónicas → buffer de tiles → atlas gráfico. Esta es la ruta que debemos privilegiar para igualar el visor de referencia.
+
+**GRH:** `habitaciones.bin` y datos de alturas → gráficos preprocesados, mantenidos como alternativa y comparación. No equivale al contador de elementos arquitectónicos original.
+
+La identificación de la habitación mediante la DLL **no debe confundirse** con el índice físico de bloque usado por el renderizador GRH.
+
+## Controles principales
+
+- **Planta**: Iglesia / Scriptorium / Biblioteca; selección mediante minimapa o número de habitación.
+- **Gráficos**: Amstrad CPC, Amstrad CPC noche, MSX, MSX2 Remake, PC CGA, Remake PC, ZX Spectrum.
+- **Mapa**: Original CPC, MSX, Reducido (cinta CPC).
+- **Elementos**: número de construcciones visibles; el total depende de habitación y mapa.
+- **Pintado progresivo**: avance automático por construcciones en modo ORIGINAL, no por filas de imagen.
+- **Área extendida**: genera 32×32 en lugar de 16×20; el arrastre permite explorarla.
+- **Mostrar borde**: en área extendida, rectángulo de referencia blanco 16×20 con inicio lógico (8,8).
+- **Motor**: alternar ORIGINAL / GRH para comparación.
+- **Zoom**: ajuste independiente de los dos motores, con límites según el área disponible.
+
+## Validaciones del generador original
+
+La prueba ejecutada por el usuario fue:
+
+```powershell
+& 'K:\Godot_v4.6.1\Godot_v4.7.2-stable_mono_win64.exe' --headless --path . --script res://scripts/test_abadia_screen_generator.gd
 ```
-assets/
-  tiles_day.png              Hoja de 256 tiles isométricos (16×8 px c/u)
-  tiles_night.png            Versión nocturna
-  sprites/                   Hojas de sprites: abad, adso, guillermo, malaquias,
-                             berengario, severino, bernardo, jorge, hooded,
-                             doors, objects, light
-data/
-  floors.json                3 pisos, grid 16×16 de IDs de habitación
-  rooms.json                 116 habitaciones con blocks y heightData[16][16]
-  scripts.abs                Bytecode parseado de los scripts de dibujado de habitaciones
-  tiles.json                 Definiciones de frames de los 256 tiles
-  adso.json, monk.json       Definiciones de frames de sprites de personajes
-  doors.json, objects.json   Definiciones de frames de puertas y objetos
-scenes/
-  Main.tscn                  Escena raíz (MapaPisos + Jugador + UI + Audio)
-  MapaPisos.tscn             Nodo2D con script MapaPisos.gd
-  Jugador.tscn               CharacterBody2D + Camera2D (zoom 4×) + sprite Guillermo
-  UI.tscn                    CanvasLayer con etiquetas de zona y hora
-scripts/
-  ScriptInterpreter.gd       Parsea scripts.abs e interpreta bloques → genera tile buffers
-  TileRenderer.gd            Convierte tile buffers en Sprite2D con AtlasTexture de tiles_day.png
-  MapaPisos.gd               Carga datos, orquesta renderizado de mapas por piso
-  Jugador.gd                 Movimiento 2D con sonido de pasos
-  Reloj.gd                   Sistema de horas canónicas (autoload "Horario")
-  UI.gd                      Muestra hora y zona actual
-  AbbeyMap.gd                Datos de posiciones y conexiones de habitaciones
-  PathFinder.gd              Pathfinding BFS
-  AbadIA.gd                  Autómata del abad con 10 posiciones
-  MonjeIA.gd                 6 tipos de monjes con rutas
-```
 
-## Arquitectura de rendering
+Resultados comunicados: **RESULTADO: OK**. Para `3d_cpc.map`, habitación 77: **28 elementos**, con sumas de comprobación para 0, 15, 22 y 28 elementos **0, 14742, 22764 y 32201**. También coincidieron los totales de las habitaciones 39, 69 y 103 para los tres mapas de prueba.
 
-El mapa se genera dinámicamente desde los datos originales del juego:
+| Habitación | Original CPC | MSX | CPC cinta |
+| --- | ---: | ---: | ---: |
+| 39 | 24 | 22 | 0 |
+| 69 | 23 | 23 | 17 |
+| 77 | 28 | 28 | 25 |
+| 103 | 26 | 26 | 26 |
 
-1. `floors.json` define un grid 16×16 de IDs de habitación por piso.
-2. `rooms.json` contiene los bloques de construcción de cada habitación (tipo, posición, altura, parámetros).
-3. `ScriptInterpreter` parsea `scripts.abs` (scripts de 6-9 opcodes: WHILE, LD, INC, DEC, DRAWTILE, CALL, FLIP, etc.) y ejecuta los bloques para generar un **tile buffer** de 16×20 celdas por habitación.
-4. `TileRenderer` convierte los tile buffers en `Sprite2D` usando `AtlasTexture` sobre `tiles_day.png`, con depth sorting.
-5. `MapaPisos` coloca cada habitación en su posición del grid (rx × 16 tiles × SCALE, ry × 20 tiles × SCALE).
+## Prioridades siguientes
 
-## Datos originales
+1. Guardar una copia/tag de la **v1.1.5** antes de cambios de renderizado.
+2. Verificar los **siete atlas gráficos** y **tres mapas** en las tres plantas, anotando habitación, configuración y diferencias visuales.
+3. Revisar el aspecto de la ventana y el centrado inicial frente al visor web, sin alterar el generador comprobado.
+4. Validar bordes, arrastre y escalado tras cambios de habitación/motor y al redimensionar ventana.
+5. Solo después, evaluar eliminación del código GRH provisional y limpieza de módulos heredados.
 
-Todos los assets y datos provienen del reimplementación JS de [ultrabolido/abadia](https://github.com/ultrabolido/abadia) y el Java de [ibaca/la-abadia-del-crimen](https://github.com/ibaca/la-abadia-del-crimen).
+## Material de referencia
 
-## Roadmap
+- [Visor web de referencia](https://visor.abadiadelcrimenextensum.com/)
+- JavaScript del visor aportado: `index-7uqyKgKQ.js` (se recibió también con extensión `.java`).
+- Datos originales: `bloques.bin`, `3d_cpc.map`, `3d.map`, `3d_cpc_cinta.map`.
+- Historial de decisiones y comprobaciones en [`MEMORIA.md`](MEMORIA.md); análisis técnico en [`analisis.md`](analisis.md).
 
-- [ ] Corregir posicionamiento de habitaciones (superposición y gaps)
-- [ ] Corregir color de fondo (debe ser negro, no gris)
-- [ ] Añadir monjes con IA y patrullas basadas en horarios
-- [ ] Sistema de cambio de pisos
-- [ ] Interactividad: zonas informativas, puertas, objetos
+**Nota sobre atribuciones y recursos:** la documentación anterior también citaba implementaciones externas (`ultrabolido/abadia` e `ibaca/la-abadia-del-crimen`) y recursos del juego. Conservar los créditos y verificar licencias y derechos antes de distribuir un paquete público con los recursos gráficos.

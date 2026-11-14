@@ -1,384 +1,107 @@
-# Análisis técnico de discrepancia entre el visor original de La Abadía del Crimen y la implementación en Godot
+# Análisis técnico — Visor La Abadía del Crimen en Godot
 
-## Contexto
+**Actualizado al estado probado de v1.1.5.** Este informe revisa el análisis anterior sobre el desacuerdo entre habitaciones y describe cómo se resolvió la reproducción del visor web.
 
-Estoy desarrollando una reimplementación en Godot 4 del visor de habitaciones de **La Abadía del Crimen**, tomando como referencia el visor web original.
+## 1. Problema original: habitación seleccionada ≠ escena esperada
 
-Actualmente dispongo de:
+En las primeras pruebas el minimapa elegía habitación mediante proximidad a puntos de un `Dictionary`. Un clic de Scriptorium cerca de `(32.87, 34.43)` se asociaba a la **67** en vez de a la **69**. El problema se debía a utilizar el punto ajustado y la búsqueda por cercanía, no necesariamente a una conversión errónea entre habitación lógica y bloque físico.
 
-- Visor web original (JavaScript).
-- Implementación propia en Godot 4.
+### Solución aplicada
 
----
+- Se calibraron celdas **16×16** para Iglesia y **32×32** para Scriptorium/Biblioteca.
+- Se creó **`AbadiaMapData.dll`** (.NET 8), con `RoomDataBridge.cs` para identificar la habitación por celda.
+- El clic **real** alimenta la selección; no se busca el marcador más próximo.
+- Se validó la habitación 69 y otras habitaciones de las tres plantas; los marcadores temporales amarillo y celeste se retiraron del visor final.
 
-# Estado actual del proyecto
+**Conclusión revisada:** la hipótesis antigua «el fallo se debe a `logical_room_to_data_block(room) == room`» no estaba demostrada y **no debe tratarse como diagnóstico vigente**. El visor web pasa el número lógico de habitación directamente a `generateScreen(room, ...)`, mientras que el motor GRH tiene su propio almacenamiento de bloques físicos. Son dos rutas distintas.
 
-## Minimapa
+## 2. Problema del contador «Elementos»
 
-La funcionalidad básica del minimapa ya está implementada:
+El visor web muestra la habitación 77 con **28 elementos** en el mapa Original CPC. El formato GRH previo contiene muchos más registros: en el bloque 77 se contabilizaron **770 GRH no vacíos**, de **173 IDs** diferentes (1320 registros en total, 20×22×3). Por tanto, un GRH o una fila de celdas **no** es un elemento arquitectónico del visor.
 
-- Selector de planta.
-- Selector de habitaciones.
-- Marcadores visuales.
-- Calibración manual mediante clic.
-- Exportación de coordenadas a fichero de texto.
-- Persistencia de las posiciones ajustadas.
+La versión v0.8.1 introdujo un avance provisional agrupando GRH para toda la interfaz, pero **no era equivalente** a 15/28 y 22/28 del original.
 
-Las plantas disponibles son:
+## 3. Descubrimiento del JavaScript original
 
-```gdscript
-const FLOOR_NAMES := [
-	"Iglesia",
-	"Scriptorium",
-	"Biblioteca"
-]
-```
+El recurso `index-7uqyKgKQ.js` del visor incluía un intérprete de arquitectura con:
 
----
+- `defBloques` y `defPantallas3D` (datos de `bloques.bin` y mapas `3d*.map`).
+- `getScreenOffset(room)` para avanzar hasta los datos de una habitación.
+- `generateScreen(room, buffer, element_limit)` para procesar las **construcciones**, con corte exacto al alcanzar el número solicitado.
+- `initBlockInterpretation`, `interpretCommands`, `doMacro`, `drawTileAndMove` y `writeTile` para producir el buffer gráfico.
 
-## Sistema de habitaciones
+La función original no cuenta GRH únicos: avanza **una construcción por entrada** del mapa 3D. El valor 28/28 procede de ese recorrido.
 
-Las habitaciones se almacenan en:
+### Mapas reconocidos
 
-```gdscript
-var room_positions: Array[Dictionary]
-```
+| Opción de interfaz | Archivo |
+| --- | --- |
+| Original CPC | `3d_cpc.map` |
+| MSX | `3d.map` |
+| Reducido (cinta CPC) | `3d_cpc_cinta.map` |
 
-Cada diccionario contiene:
+### Recuento de elementos verificado
 
-```gdscript
-numero_habitacion -> Vector2(x_normalizada, y_normalizada)
-```
+| Habitación | Original CPC | MSX | Reducido CPC |
+| --- | ---: | ---: | ---: |
+| 39 | 24 | 22 | 0 |
+| 69 | 23 | 23 | 17 |
+| 77 | 28 | 28 | 25 |
+| 103 | 26 | 26 | 26 |
 
-Ejemplo:
+La prueba real del usuario de `test_abadia_screen_generator.gd` en Godot 4.7.2 .NET concluyó con **`RESULTADO: OK`**. Para habitación 77 / Original CPC, checksums de buffers: **0/28→0, 15/28→14742, 22/28→22764, 28/28→32201**. Esto valida los datos generados para esos casos, no una equivalencia visual universal de todas las habitaciones.
 
-```gdscript
-73: Vector2(0.72, 0.27)
-```
+## 4. Port a Godot y evolución del renderizado
 
-Las coordenadas están normalizadas entre 0 y 1.
+`abadia_screen_generator.gd` interpreta las construcciones originales y alimenta el modo **ORIGINAL** de `abadia_renderer.gd`. GRH se conserva como modo alternativo.
 
----
+### Fallos y correcciones comprobados
 
-# Cambios realizados recientemente
+| Hito | Diagnóstico | Corrección / estado |
+| --- | --- | --- |
+| Selección 67/69 | Proximidad al `Dictionary` y clic ajustado | Selección exacta por DLL y clic real. |
+| Construcciones a 15/28 | Conteo por filas/GRH | Generador original por entradas del `.map`. |
+| Área extendida sin efecto | Se probaba en GRH y configuración de escala distinta | Se activó ORIGINAL y se conectó 16×20 ↔ 32×32 con arrastre. |
+| Tiles mezclados | Ejes de atlas intercambiados | `tile_id >> 4` para X; `tile_id & 15` para Y. |
+| Marco ausente | Borde de todo el lienzo | Marco blanco 16×20 desde celda `(8,8)` en área extendida. |
+| Cambio GRH/ORIGINAL pequeño | Ambos motores compartían zoom 1.0 | Zoom independiente y escala limitada al área visible (v1.1.5). |
 
-## Marcador cyan (habitación seleccionada)
+El usuario confirmó que la v1.1.5 funciona. No se debe declarar comprobada la totalidad de las habitaciones, tilesets y mapas por esa sola prueba.
 
-Se implementó un marcador visual para representar la habitación seleccionada:
+## 5. Semántica precisa de los controles
 
-```gdscript
-selected_marker : ColorRect
-```
+**Motor ORIGINAL** usa el generador arquitectónico, la barra de **Elementos** y el pintado progresivo por construcciones. El JavaScript avanzaba aproximadamente cada **100 ms** en ese modo.
 
-La posición se actualiza mediante:
+**Motor GRH** usa habitaciones precompuestas; sus pasos provisionales deben señalarse como tales y no considerarse elementos arquitectónicos exactos.
 
-```gdscript
-_update_marker()
-```
+**Área extendida:** vista normal 16×20, extendida 32×32. El rectángulo de referencia blanco aparece al tener activados área extendida y mostrar borde; desplazamiento por arrastre para explorar el área. No representa un mero cambio de zoom.
 
-Actualmente el tamaño se adapta según la planta:
+**Gráficos:** Amstrad CPC, Amstrad CPC noche, MSX, MSX2 Remake, PC CGA, Remake PC, ZX Spectrum. **Mapa:** Original CPC, MSX, Reducido (cinta CPC). Hubo una etiqueta equivocada «Original CPC» en Gráficos, corregida durante el trabajo: son selectores independientes.
 
-```gdscript
-if current_floor == 0:
-	selected_marker.size = Vector2(16, 16)
-else:
-	selected_marker.size = Vector2(32, 32)
-```
+## 6. Elementos aún no completamente verificados
 
-Esta lógica está basada en el análisis del visor original, donde:
+- Correspondencia visual de las **116 habitaciones** y todas las opciones de los tres `.map`.
+- Los siete atlas combinados con cada mapa, incluido el modo nocturno.
+- Ajuste inicial y respuesta al cambio de tamaño de ventana, zoom, arrastre y bordes en distintas resoluciones.
+- Comportamiento de UI al alternar repetidamente ORIGINAL ↔ GRH.
+- Código heredado de prototipos de juego (`Jugador`, `scripts.abs`, IA de monjes) que no forma parte de la ruta verificada del visor.
 
-- Iglesia utiliza celdas de 16x16.
-- Scriptorium utiliza celdas de 32x32.
-- Biblioteca utiliza celdas de 32x32.
+## 7. Recomendaciones para próximos cambios
 
----
+1. Conservar una copia/tag del estado **v1.1.5** y nunca sobrescribirlo con variantes viejas de `main.gd`.
+2. Crear una matriz de pruebas reproducibles, por ejemplo habitaciones 23/39 (Iglesia), 69/77 (Scriptorium), 100/103 (Biblioteca), con cada tileset y mapa.
+3. Validar capturas del visor web frente a Godot en vista normal y extendida, con 0/N, 15/N, 22/N y N/N donde corresponda.
+4. Desacoplar diagnóstico y datos de rendering sin alterar el orden de construcciones verificado.
+5. Limpiar módulos duplicados solo tras comprobar dependencias y mantener una ruta de reversión.
 
-## Marcador amarillo (último clic)
+## 8. Referencias del proyecto
 
-También existe un segundo marcador:
+- JavaScript del visor aportado: `index-7uqyKgKQ.js` (subido originalmente con extensión `.java`).
+- Binarios originales: `bloques.bin`, `3d_cpc.map`, `3d.map`, `3d_cpc_cinta.map`.
+- Scripts principales: `main.gd`, `mapa_abadia.gd`, `abadia_renderer.gd`, `abadia_screen_generator.gd`, `test_abadia_screen_generator.gd`.
+- Integración C#: `AbadiaMapData/`, `RoomDataBridge.cs`, `data/habitaciones.json`.
+- Visor de comparación: https://visor.abadiadelcrimenextensum.com/
 
-```gdscript
-marker : ColorRect
-```
+### Nota histórica
 
-Su función es mostrar visualmente el último punto pulsado durante la calibración.
-
----
-
-## Exportación de coordenadas
-
-Cuando se realiza un clic sobre el minimapa se actualiza:
-
-```gdscript
-room_positions[current_floor][current_room] = normalized
-```
-
-y posteriormente:
-
-```gdscript
-_save_room_positions()
-```
-
-Lo que genera un fichero:
-
-```text
-room_positions.txt
-```
-
-Ejemplo de salida:
-
-```text
-CALIBRACIÓN | planta=Iglesia habitación=51 coordenadas=(0.6217, 0.9304)
-```
-
-El fichero generado contiene todas las habitaciones de todas las plantas con sus coordenadas actuales.
-
----
-
-# Comportamiento observado
-
-## Caso de prueba
-
-Planta:
-
-```text
-Scriptorium
-```
-
-Habitación:
-
-```text
-73
-```
-
----
-
-# Comparación visual
-
-## Visor web original
-
-Para la habitación 73 se muestra:
-
-- Sala relativamente pequeña.
-- Escalera lateral.
-- Suelo ajedrezado.
-- Distribución compacta.
-- La vista aparece centrada.
-
-## Implementación Godot
-
-Para la misma habitación 73 se muestra:
-
-- Una sala mucho más grande.
-- Mesas y atriles.
-- Otra distribución arquitectónica.
-- Distinta composición espacial.
-- Distinta perspectiva visual.
-
-Visualmente ambas habitaciones no coinciden.
-
----
-
-# Observaciones importantes
-
-## El minimapa parece correcto
-
-Se observa que:
-
-- La planta seleccionada coincide.
-- La habitación seleccionada coincide.
-- El marcador aparece en la zona correcta del minimapa.
-- La calibración parece funcionar correctamente.
-
-Por tanto:
-
-```text
-La selección de habitación parece correcta.
-```
-
----
-
-## El render 3D NO coincide
-
-La discrepancia aparece exclusivamente en la habitación renderizada.
-
-Esto sugiere que el problema está entre:
-
-```text
-Habitación lógica
-↓
-Pantalla 3D mostrada
-```
-
-y no en el minimapa.
-
----
-
-# Hipótesis principal
-
-Actualmente mi implementación utiliza una función provisional:
-
-```gdscript
-func logical_room_to_data_block(room_number: int) -> int:
-	return room_number
-```
-
-Lo que implica:
-
-```text
-Habitación 73
-↓
-Bloque 73
-```
-
-sin ninguna transformación adicional.
-
----
-
-# Sospecha
-
-Tras comparar el comportamiento del visor original, sospecho que el número de habitación NO corresponde directamente con el índice utilizado por el motor de renderizado.
-
-Es posible que exista una tabla de conversión similar a:
-
-```text
-Habitación lógica
-↓
-Identificador interno
-↓
-Bloque de pantalla
-↓
-Renderizado
-```
-
-y que mi implementación esté omitiendo esa transformación.
-
----
-
-# Información relevante del código JavaScript original
-
-En el código original existe una tabla de habitaciones:
-
-```javascript
-var c = new Uint8Array(...)
-```
-
-y una función:
-
-```javascript
-function l(x, y) {
-	if (x < 0 || x >= 16 || y < 0 || y >= 15)
-		return -1;
-
-	let room = c[y * 16 + x];
-
-	return room;
-}
-```
-
-Esta función devuelve el número lógico de habitación.
-
-Posteriormente se termina llamando a:
-
-```javascript
-generateScreen(room, ...)
-```
-
-pero todavía no he podido determinar si existe una transformación intermedia entre:
-
-```text
-room
-```
-
-y
-
-```text
-bloque de pantalla real
-```
-
----
-
-# Preguntas para analizar
-
-## Pregunta 1
-
-¿Existe en el visor original alguna tabla de conversión entre:
-
-```text
-Número lógico de habitación
-```
-
-y
-
-```text
-Identificador interno de pantalla
-```
-
-?
-
----
-
-## Pregunta 2
-
-¿El motor utiliza realmente:
-
-```javascript
-generateScreen(room)
-```
-
-de forma directa?
-
-o
-
-¿existe previamente alguna conversión similar a:
-
-```javascript
-screenId = roomToScreen[room];
-```
-
-?
-
----
-
-## Pregunta 3
-
-¿Es incorrecta la implementación actual?
-
-```gdscript
-func logical_room_to_data_block(room_number: int) -> int:
-	return room_number
-```
-
-y debería sustituirse por una tabla equivalente a la utilizada por el visor web original.
-
----
-
-# Conclusión provisional
-
-Todo apunta a que:
-
-✅ El minimapa funciona correctamente.
-
-✅ La selección de habitación funciona.
-
-✅ La calibración de coordenadas funciona.
-
-✅ Los marcadores funcionan.
-
-❌ El renderizado 3D no coincide con el visor original.
-
-La causa más probable parece estar en el mapeo:
-
-```text
-Habitación lógica
-↓
-Bloque de datos 3D
-```
-
-ya que actualmente se está utilizando una correspondencia directa:
-
-```gdscript
-room_number == block_number
-```
-
-y sospecho que el visor original utiliza una conversión adicional que todavía no he identificado.
+El análisis previo sostenía provisionalmente que el problema de la habitación 73 era una conversión incorrecta de habitación lógica a bloque GRH y describía marcadores y calibración normalizada que ya se han retirado. Se conserva aquí como antecedente, **no como conclusión vigente**.
