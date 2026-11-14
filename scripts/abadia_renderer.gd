@@ -511,6 +511,11 @@ func _draw_diagnostic_overlay() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	# F3_FIX_V116: manejar F3 antes de que los controles consuman la tecla.
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
+		_unhandled_key_input(event)
+		get_viewport().set_input_as_handled()
+		return
 
 	if event is InputEventMouseButton:
 
